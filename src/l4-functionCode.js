@@ -1,7 +1,7 @@
 var Logger = require('./../utils/logger');
 var DEFINES = require('./../lib/defs').DEFINES;
 var logger = new Logger( {moduleName: 'FunctionCode', color: 'green'} );
-var Manager = require('./l3-manager');
+var Manager = require('./l3-messenger');
 var Message = require('./../utils/message');
 
 //The second byte sent by the Master is the Function code. This number tells the slave which table to access and whether to read from or write to the table.

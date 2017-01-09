@@ -4,9 +4,9 @@ var Logger = require('./../utils/logger');
 var Transport = require('./l2-transport');
 var EventEmitter = require('events').EventEmitter;
 
-var logger = new Logger( { moduleName: 'Manager', color: 'blue'} );
+var logger = new Logger( { moduleName: 'Messenger', color: 'blue'} );
 
-var Manager = function(options) {
+var Messenger = function(options) {
 
 	if(typeof options === 'undefined') {
 		options = {};
@@ -19,9 +19,9 @@ var Manager = function(options) {
 }
 
 
-Manager.prototype = Object.create(EventEmitter.prototype);
+Messenger.prototype = Object.create(EventEmitter.prototype);
 
-Manager.prototype.start = function(options) {
+Messenger.prototype.start = function(options) {
 	var self = this;
 
 	function responseCB(frame) {
@@ -41,15 +41,15 @@ Manager.prototype.start = function(options) {
 	});
 }
 
-Manager.prototype.getNextSeqId = function() {
+Messenger.prototype.getNextSeqId = function() {
 	return (this._seqId++ & 0xFFFF);
 }
 
-Manager.prototype.getNextMsgId = function() {
+Messenger.prototype.getNextMsgId = function() {
 	return (this._msgId++ & 0xFFFF);
 }
 
-Manager.prototype.push = function(msg, cb) {
+Messenger.prototype.push = function(msg, cb) {
 	var self = this;
 	if(typeof cb === 'function') {
 		msg.respCB(cb);
@@ -72,7 +72,7 @@ Manager.prototype.push = function(msg, cb) {
 
 //total number of retries = totalassignedseqId - totatassignedmsgId
 
-Manager.prototype.send = function(msg) {
+Messenger.prototype.send = function(msg) {
 	try {
 		msg.seqId(this.getNextSeqId());
 		logger.debug('Msg' + msg._msgId + ' sending to transport');
@@ -85,7 +85,7 @@ Manager.prototype.send = function(msg) {
 }
 
 //Callback for frame sent to ZW from host
-Manager.prototype.requestFrameCB = function(msgId, err) {
+Messenger.prototype.requestFrameCB = function(msgId, err) {
 	var self = this;
 
 	var msg = false;
@@ -117,7 +117,7 @@ Manager.prototype.requestFrameCB = function(msgId, err) {
 	}
 }
 
-Manager.prototype.retry = function(msg, err) {
+Messenger.prototype.retry = function(msg, err) {
 	if(msg._retries-- > 0) {
 		logger.info('Msg' + msg._msgId + ' retrying, left ' + msg._retries);
 		this.send(msg);
@@ -128,12 +128,12 @@ Manager.prototype.retry = function(msg, err) {
 	}
 }
 
-Manager.prototype.removeMsg = function(msg) {
+Messenger.prototype.removeMsg = function(msg) {
 	logger.debug('Msg' + msg._msgId + ' dequeuing message, left in the queue ' + this._queue.length);
 	return this._queue.splice(this._queue.indexOf(msg), 1); //splice removes the element and shortnes the array length, delete only removes the elements.
 }
 
-Manager.prototype.callResponseCB = function(msg, err) {
+Messenger.prototype.callResponseCB = function(msg, err) {
 	//check if the callback is assigned and remove it from the queue
 	logger.debug('Msg' + msg._msgId + ' calling response callback');
 	clearTimeout(msg._respTimer);
@@ -142,7 +142,7 @@ Manager.prototype.callResponseCB = function(msg, err) {
 }
 
 //FIFO so we look for the first msg which matches the command
-Manager.prototype.handleResponse = function(frame) {
+Messenger.prototype.handleResponse = function(frame) {
 	if(!(frame instanceof DataFrame)) {
         throw new TypeError('incoming response should be of DataFrame type');
 	}
@@ -179,7 +179,7 @@ Manager.prototype.handleResponse = function(frame) {
 	}
 }
 
-Manager.prototype.assignEventListener = function(f) {
+Messenger.prototype.assignEventListener = function(f) {
 	if(typeof f !== 'function')
 		throw new TypeError('Event listener should be of fucntion type')
 
@@ -187,16 +187,16 @@ Manager.prototype.assignEventListener = function(f) {
 }
 
 //Utils for testing
-Manager.prototype.getQueue = function() {
+Messenger.prototype.getQueue = function() {
 	return this._queue;
 }
 
-Manager.prototype.getCurrentSeqId = function() {
+Messenger.prototype.getCurrentSeqId = function() {
 	return this._seqId;
 }
 
-Manager.prototype.getCurrentMsgId = function() {
+Messenger.prototype.getCurrentMsgId = function() {
 	return this._msgId;
 }
 
-module.exports = Manager;
+module.exports = Messenger;

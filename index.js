@@ -14,7 +14,7 @@ var logger = new Logger( {moduleName: 'Module', color: 'white'} );
  * @constructor
  * @param {Object} fc Function Code class specifies the read/write modbus formats
  */
-var ModbusRTU = function() {
+var ModbusRTU = {
 	start: function(fc) {
 		this._fc = fc;
 		// this._numDevices = 0;
