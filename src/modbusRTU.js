@@ -1,3 +1,7 @@
+var fs = require('fs');
+var jsonminify = require('jsonminify');
+var Logger = require('./../utils/logger');
+var logger = new Logger( {moduleName: 'Manager', color: 'bgBlue'} );
 /**
  * Modbus Remote Terminal Unit (RTU)
  * Provides commands which helps start and stop device controller
@@ -7,8 +11,10 @@
  * @param {Object} fc Function Code class specifies the read/write modbus formats
  */
 var ModbusRTU = {
-	start: function(fc) {
-		this._fc = fc;
+	start: function(obj) {
+		logger.info('Starting controller');
+		this._fc = obj.fc;
+		this._resourceDirectory = obj.resourceTypesDirectory;
 		// this._numDevices = 0;
 		// this._runningControllers = 0;
 		// this._listDevices;
@@ -27,18 +33,52 @@ var ModbusRTU = {
 		 *  handler accepts a single error object.
 		 */
 		start: function(device) {
+			logger.info('Got start on device ' + JSON.stringify(device));
+			function checkAndReadFile(file) {
+				return new Promise(function(resolve, reject) {
+					if(!fs.existsSync(file)) {
+						logger.error('File do not exists on path ' + file);
+						reject('File do not exists on path ' + file);
+					} else {
+						logger.info('Found file on path ' + file);
+						var dcMetaData = JSON.parse(jsonminify(fs.readFileSync(file, 'utf8')));
+						// console.log('File data ', dcMetaData);
+						resolve(dcMetaData);
+					}
+				})
+			}
 
+			if(typeof device === 'string' && device.indexOf("/") > -1) {
+				//File path
+				if(device.indexOf('~') > -1) {
+					return Promise.reject('Only accepts absolute path, invalid parameter ' + device);
+				}
+				return checkAndReadFile(device).then(function(dcMetaData) {
+
+				})
+			} else if (typeof device === 'string' && device.indexOf("/") == -1) {
+				//File name
+				//Look for this file in resourceTypes directory
+				var filepath = __dirname + '/../' + this._resourceDirectory + '/' + device;
+				return checkAndReadFile(filepath).then(function(dcMetaData) {
+
+				})
+			} else if (typeof device === 'object' && typeof device.commandID === 'undefined' && typeof device.resourceSet === 'undefined') {
+
+			} else {
+				return Promise.reject('Invalid parameter, please specify filename or filepath or deviceJSONObject');
+			}
 		},
 		/**
 		 * Stop device controller
 		 *
 		 * @method start
-		 * @param {Object} device 
+		 * @param {String} resourceId Specify resourceID of the device controller to be stopped 
 		 * @return {Promise} The success handler accepts no parameter. The failure
 		 *  handler accepts a single error object.
 		 */
 		stop: function() {
-			return 'Hello'
+			return 'Hello';
 		},
 		listDevices: function() {
 

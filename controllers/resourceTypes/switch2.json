@@ -1,0 +1,19 @@
+{
+	"name": "iMod6Switch2",
+	"resourceID": "", 
+	"deviceGenre": "switch",
+	"resourceType": "Core/Devices/Modbus",
+	"version": "0.0.1",
+	"slaveAddress": 2,
+	"enable": true,
+	"generateControllerFiles": false,
+	"interfaces": {
+		"Facades/Switchable": { 
+			"dataAddress": 203, 
+			"range": 1,
+			"pollingInterval": 1000,
+			"outgoingOperation": "{{value}}",
+			"unit": ""
+		}
+	}
+}

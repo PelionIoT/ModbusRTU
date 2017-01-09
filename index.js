@@ -4,7 +4,7 @@ var configurator = require('devjs-configurator');
 var FunctionCode = require('./src/l4-functionCode');
 var ModbusRTU = require('./src/modbusRTU');
 
-var logger = new Logger( {moduleName: 'Driver', color: 'bgBlue'} );
+var logger = new Logger( {moduleName: 'Driver', color: 'bgGreen'} );
 
 //---------------------------------------------------------------------
 configurator.configure("ModbusRTU",__dirname).then(function(data) {
@@ -16,15 +16,15 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 		var functionCode = new FunctionCode();
 		functionCode.start(options).then(function() {
 
-			try {
-				var modbus = new ModbusRTU(options.modbusResourceId || "ModbusRTU1");
-			} catch(e) {
-				logger.error(e);
-			}
-			modbus.start(functionCode).then(function() {
+			var modbus = new ModbusRTU(options.modbusResourceId || "ModbusRTU1");
+			modbus.start({
+				fc: functionCode, 
+				resourceTypesDirectory: options.resourceTypesDirectory || "controllers/resourceTypes"
+			}).then(function() {
 				logger.info('Modbus RTU controller started successfully with ID ' + options.modbusResourceId);
+				//Instantiate available resource types
 			}, function(err) {
-				logger.error('Could not start modbus controller ' + JSON.stringify(err));
+				logger.error('Could not start modbus controller ' + (err.stack || JSON.stringify(err)));
 				if(err.status == 500) {
 					logger.error('Check the modbusResourceId in config.json, we already have one controller running with the specified id. Change the id and try again!');
 				}

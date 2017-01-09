@@ -1,5 +1,5 @@
 {
-	"serialInterfaceOptions": {
+	"serialInterfaceOptions": { //Used to setup comms with Modbus slave device
 		"siodev": "/dev/ttyUSB0",
 		"baudrate": 19200,
 		"dataBits": 8,
@@ -7,8 +7,9 @@
 		"parity": "none",
 		"endPacketTimeout": 15
 	},
-	"platform": "",
-	"maxTransportRetries": 1,
-	"responseTimeout": 500,
-	"modbusResourceId": "ModbusRTU"
+	"platform": "", //Used to identify platform so that module can adapt and run automagically
+	"maxTransportRetries": 1, //Transport layer retries, message retries are default to 3 so total retries will be 4
+	"responseTimeout": 500, //Timeout if no data received on request (in ms)
+	"modbusResourceId": "ModbusRTU", //ID on which the Modbus module will be registered with DeviceJS
+	"resourceTypesDirectory": "controllers/resourceTypes" //Directory where all the resouces are or will be defined
 }
