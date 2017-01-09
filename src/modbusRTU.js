@@ -54,7 +54,8 @@ var ModbusRTU = {
 					return Promise.reject('Only accepts absolute path, invalid parameter ' + device);
 				}
 				return checkAndReadFile(device).then(function(dcMetaData) {
-
+					//1. Generate unique resource ID
+					//2. 
 				})
 			} else if (typeof device === 'string' && device.indexOf("/") == -1) {
 				//File name
@@ -64,9 +65,15 @@ var ModbusRTU = {
 
 				})
 			} else if (typeof device === 'object' && typeof device.commandID === 'undefined' && typeof device.resourceSet === 'undefined') {
-
+				try {
+					var dcMetaData = JSON.parse(JSON.stringify(device));
+					return Promise.resolve(dcMetaData);
+				} catch(e) {
+					logger.error('Failed to parse JSON object ' + e);
+					return Promise.reject('Failed to parse JSON object ' + e);
+				}
 			} else {
-				return Promise.reject('Invalid parameter, please specify filename or filepath or deviceJSONObject');
+				return Promise.reject('Invalid parameter, please specify filename or absolute filepath or device metadata JSONObject');
 			}
 		},
 		/**
