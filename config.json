@@ -9,5 +9,6 @@
 	},
 	"platform": "",
 	"maxTransportRetries": 1,
-	"responseTimeout": 500
+	"responseTimeout": 500,
+	"modbusResourceId": "ModbusRTU"
 }
