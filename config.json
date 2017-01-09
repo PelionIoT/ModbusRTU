@@ -1,0 +1,13 @@
+{
+	"serialInterfaceOptions": {
+		"siodev": "/dev/ttyUSB0",
+		"baudrate": 19200,
+		"dataBits": 8,
+		"stopBits": 1,
+		"parity": "none",
+		"endPacketTimeout": 15
+	},
+	"platform": "",
+	"maxTransportRetries": 1,
+	"responseTimeout": 500
+}

@@ -1,0 +1,16 @@
+{
+    "name": "ModbusRTUInterface",
+    "version": "0.0.1",
+    "commands": { 
+        "start": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
+        },
+        "stop": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
+        }
+    },
+    "state": { },
+    "events": { }
+}

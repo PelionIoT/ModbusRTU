@@ -1,0 +1,5 @@
+{
+    "name": "ModbusRTU",
+    "version": "0.0.1",
+    "interfaces": [ "ModbusRTUInterface" ]
+}
