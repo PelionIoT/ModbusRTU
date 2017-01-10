@@ -20,6 +20,10 @@ FunctionCode.prototype.start = function(opts) {
 			logger.info('Started successfully');
 			resolve();
 		}, function(err) {
+			if(typeof opts.simulate !== 'undefined' && opts.simulate) {
+				logger.warn('Continuing... As the SIMULATOR Mode is on');
+				return resolve();
+			}
 			logger.error('Failed with error '+ err);
 			reject(err);
 		});
