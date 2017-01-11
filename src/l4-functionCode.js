@@ -3,6 +3,7 @@ var DEFINES = require('./../lib/defs').DEFINES;
 var logger = new Logger( {moduleName: 'FunctionCode', color: 'green'} );
 var Manager = require('./l3-messenger');
 var Message = require('./../utils/message');
+var handleBars = require('handlebars');
 
 //The second byte sent by the Master is the Function code. This number tells the slave which table to access and whether to read from or write to the table.
 var FunctionCode = function() {
@@ -449,5 +450,25 @@ FunctionCode.prototype.writeRegisters = function (address, dataAddress, array, c
 		delete msg;
 	});
 };
+
+/**
+ * Evaluate operation on input data
+ *
+ * @method evalOperation
+ * @param {Number} inputData input data on which operation will be performed
+ * @param {String} operation operation with handlebars
+ * @return {Number} outputData return evaluated operation result upto 2 decimal places
+ */
+FunctionCode.prototype.evalOperation = function(inputData, operation) {
+	if(typeof operation === 'undefined') {
+		return inputData;
+	}
+	logger.debug('Got evalOperation on inputData- ' + inputData + ' operation ' + JSON.stringify(operation));
+	var template = handleBars.compile(JSON.stringify(operation));
+    var info = {};
+    info.value = inputData;
+    var outputData = eval(JSON.parse(template(info))); 
+    return (typeof outputData === 'number') ? outputData.toFixed(2)/1 : outputData;
+}
 
 module.exports = FunctionCode;

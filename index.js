@@ -3,6 +3,7 @@ var configurator = require('devjs-configurator');
 
 var FunctionCode = require('./src/l4-functionCode');
 var ModbusRTU = require('./src/modbusRTU');
+var Scheduler = require('./src/scheduler');
 
 var logger = new Logger( {moduleName: 'Driver', color: 'bgGreen'} );
 
@@ -15,11 +16,15 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 	function startModbus() {
 		var functionCode = new FunctionCode();
 		functionCode.start(options).then(function() {
-
+			
 			var modbus = new ModbusRTU(options.modbusResourceId || "ModbusRTU1");
+			var scheduler = new Scheduler(options);
+
+			scheduler.start(modbus);
 			modbus.start({
 				fc: functionCode, 
-				resourceTypesDirectory: options.resourceTypesDirectory || "controllers/resourceTypes"
+				resourceTypesDirectory: options.resourceTypesDirectory || "controllers/resourceTypes",
+				scheduler: scheduler
 			}).then(function() {
 				logger.info('Modbus RTU controller started successfully with ID ' + options.modbusResourceId);
 				//Instantiate available resource types

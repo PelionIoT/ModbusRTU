@@ -13,7 +13,7 @@
 			"dataAddress": 203, //Cannot be array of non consecutive addresses
 			"range": 1, //If not specified, default- 1
 			"pollingInterval": 1000, //Specify polling interval in ms, min 500ms
-			"outgoingOperation": "{{value}}", //If you want perform operation on output
+			"outgoingOperation": "{{value}} > 100 ? 'off' : 'on'", //If you want perform operation on output
 			"unit": "" //Default unitless
 		}
 	}

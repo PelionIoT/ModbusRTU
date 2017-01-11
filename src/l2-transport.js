@@ -93,7 +93,7 @@ Transport.prototype.startSendSequence = function() {
     if(!this._inProgress) {
 	    if(!this._ackTimeout && this._txQueue.length > 0) {
 	    	var buffer = this._txQueue[0]._request.toBuffer();
-	    	logger.info('Msg' + this._txQueue[0]._msgId + ' ' + this._txQueue[0]._description + ' start send sequence ' + buffer.toString('hex'));
+	    	logger.debug('Msg' + this._txQueue[0]._msgId + ' ' + this._txQueue[0]._description + ' start send sequence ' + buffer.toString('hex'));
 
 	        this.sendDataFrame(buffer);
 	        this._inProgress = true;
@@ -191,7 +191,7 @@ Transport.prototype.handleNakFrame = function() {
 
 // buffer should exclude first SOF byte
 Transport.prototype.handleDataFrame = function(buffer) {
-	logger.info('Incoming dataframe- '+ buffer.toString('hex'));
+	logger.debug('Incoming dataframe- '+ buffer.toString('hex'));
 
 	var incomingData = new DataFrame(buffer);
 	// logger.info('Incoming frame ' + JSON.stringify(incomingData));

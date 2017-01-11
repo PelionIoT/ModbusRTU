@@ -66,7 +66,7 @@ Messenger.prototype.push = function(msg, cb) {
 	msg.callback(requestCB);
 	this._queue.push(msg);
 
-	logger.info('Msg' + msg._msgId + ' pushed to the queue successfully');
+	logger.debug('Msg' + msg._msgId + ' pushed to the queue successfully');
 	return this.send(msg);
 }
 

@@ -1,6 +1,6 @@
 {
 	"name": "iMod6Switch2",
-	"resourceID": "", 
+	"resourceID": "laksjdflkajdflkajlkfdjl", 
 	"deviceGenre": "switch",
 	"resourceType": "Core/Devices/Modbus",
 	"version": "0.0.1",
@@ -12,7 +12,7 @@
 			"dataAddress": 203, 
 			"range": 1,
 			"pollingInterval": 1000,
-			"outgoingOperation": "{{value}}",
+			"outgoingOperation": "{{value}} > 100 ? 'off' : 'on'",
 			"unit": ""
 		}
 	}
