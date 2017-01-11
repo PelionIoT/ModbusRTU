@@ -23,11 +23,17 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 			scheduler.start(modbus);
 			modbus.start({
 				fc: functionCode, 
-				resourceTypesDirectory: options.resourceTypesDirectory || "controllers/resourceTypes",
+				resourceTypesDirectory: options.supportedResourceTypesDirectory || "controllers/supportedResourceTypes",
+				runtimeDirectory: options.runtimeResourceTypesDirectory || "controllers/runtimeResourceTypes",
 				scheduler: scheduler
 			}).then(function() {
 				logger.info('Modbus RTU controller started successfully with ID ' + options.modbusResourceId);
 				//Instantiate available resource types
+				modbus.commands.startAll().then(function() {
+					logger.info('Started device controller on all supported resource types');
+				}, function(err) {
+					logger.error('Failed to start device controllers ' + JSON.stringify(err));
+				})
 			}, function(err) {
 				logger.error('Could not start modbus controller ' + (err.stack || JSON.stringify(err)));
 				if(err.status == 500) {

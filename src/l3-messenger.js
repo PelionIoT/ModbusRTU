@@ -66,7 +66,7 @@ Messenger.prototype.push = function(msg, cb) {
 	msg.callback(requestCB);
 	this._queue.push(msg);
 
-	logger.debug('Msg' + msg._msgId + ' pushed to the queue successfully');
+	logger.info('Msg' + msg._msgId + ' pushed to the queue successfully');
 	return this.send(msg);
 }
 
@@ -129,8 +129,9 @@ Messenger.prototype.retry = function(msg, err) {
 }
 
 Messenger.prototype.removeMsg = function(msg) {
-	logger.debug('Msg' + msg._msgId + ' dequeuing message, left in the queue ' + this._queue.length);
-	return this._queue.splice(this._queue.indexOf(msg), 1); //splice removes the element and shortnes the array length, delete only removes the elements.
+	this._queue.splice(this._queue.indexOf(msg), 1); //splice removes the element and shortnes the array length, delete only removes the elements.
+	logger.info('Msg' + msg._msgId + ' dequeuing message, left in the queue ' + this._queue.length);
+	return;
 }
 
 Messenger.prototype.callResponseCB = function(msg, err) {

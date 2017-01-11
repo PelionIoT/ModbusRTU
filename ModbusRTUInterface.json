@@ -9,6 +9,22 @@
         "stop": {
             "arguments": [ ],
             "returns": { "type": "object" }
+        },
+        "disable": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
+        },
+        "delete": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
+        },
+        "execute": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
+        },
+        "shutdown": {
+            "arguments": [ ],
+            "returns": { "type": "object" }
         }
     },
     "state": { },

@@ -5,20 +5,23 @@ var crc16 = require('./crc16');
 //Construct or parse DATA frame (ModbusRTU Request)
 var DataFrame = function(buffer) {
 	if(buffer) {
-		this._slaveAddr = frameLayout.GET_SADDR(buffer);
-		this._funcCode = frameLayout.GET_FC(buffer);
-		this._funcCodeDescription = DEFINES.FUNCTION_CODE_ID[this._funcCode];
-		this._checksum = frameLayout.GET_CHECKSUM(buffer);
-
-		this._length = buffer.length;
 		this._originalBuffer = buffer;
-		
+		this._length = buffer.length;
 		this._validLength = validateLength(this);
-		this._validChecksum = validateChecksum(this);
 
 		//Based on Function Code parse the incoming buffer
-		if(this._validChecksum && this._validLength)
-			parse(this, this._funcCode, buffer);
+		if(this._validLength) {
+			this._slaveAddr = frameLayout.GET_SADDR(buffer);
+			this._funcCode = frameLayout.GET_FC(buffer);
+			this._funcCodeDescription = DEFINES.FUNCTION_CODE_ID[this._funcCode];
+			this._checksum = frameLayout.GET_CHECKSUM(buffer);
+
+			this._validChecksum = validateChecksum(this);
+
+			if(this._validChecksum) {
+				parse(this, this._funcCode, buffer);
+			}
+		}
 
 	} else {
 		this._slaveAddr = 0x01;

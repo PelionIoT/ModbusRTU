@@ -14,6 +14,7 @@ var {{controllerClassName}} = {
         this._slaveAddress = options.metadata.slaveAddress;
         this._devjsInterfaces = options.interfaces;
         this._facadeData = {};
+        this._facadeListeners = [];
 
         //Register each interface polling to scheduler
         Object.keys(self._interfaces).forEach(function(intf) {
@@ -23,8 +24,12 @@ var {{controllerClassName}} = {
                 self._scheduler.registerCommand(self._id, self._interfaces[intf].pollingInterval, facade);
 
                 //Listen for events from scheduler
+                if(self._facadeListeners.indexOf(facade) == -1) {
+                    logger.trace('adding facade to listener ' + facade);
+                    self._facadeListeners.push(facade);
+                }
                 self._scheduler.on(self._id + facade, function(state, data) {
-                    logger.trace('got data from polling ' + data);
+                    logger.debug('got data from polling ' + data);
                     if(typeof self._facadeData[state] === 'undefined') {
                         self._facadeData[state] = null;
                     }
@@ -41,7 +46,12 @@ var {{controllerClassName}} = {
         self.emit('reachable');
     },
     stop: function() {
+        var self = this;
         this._scheduler.deleteResourceScheduler(this._id);
+        logger.trace('Removing _facadeListeners ' + JSON.stringify(this._facadeListeners));
+        this._facadeListeners.forEach(function(facade) {
+            self._scheduler.removeAllListeners(self._id + facade);
+        })
     },
     state: {
         power: {

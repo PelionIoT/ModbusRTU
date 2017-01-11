@@ -1,15 +1,16 @@
 {
-	"name": "iMod6Switch2",
-	"resourceID": "laksjdflkajdflkajlkfdjl", 
+	"name": "imod6Switch2",
+	"resourceID": "iMod6OverrideSwitch", 
 	"deviceGenre": "switch",
 	"resourceType": "Core/Devices/Modbus",
 	"version": "0.0.1",
 	"slaveAddress": 2,
 	"enable": true,
+	"overwrite": false,
 	"generateControllerFiles": false,
 	"interfaces": {
 		"Facades/Switchable": { 
-			"dataAddress": 203, 
+			"dataAddress": 202, 
 			"range": 1,
 			"pollingInterval": 1000,
 			"outgoingOperation": "{{value}} > 100 ? 'off' : 'on'",
