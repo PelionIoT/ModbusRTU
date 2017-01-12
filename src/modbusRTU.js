@@ -120,40 +120,46 @@ var ModbusRTU = {
 		                    genericController = template(data);
 
 		    				var controller_dir = autogen_dir + '/' + resourceID;
-				            mkdirp(controller_dir, function(err) {
-				                if(err) {
-				                    logger.error(controller_dir + ' dir could not be created ' +  err);
-				                    return reject('Could not create directory ' + controller_dir + ' error ' + err);
-				                }
-			                    fs.writeFile(controller_dir + '/controller.js', genericController, function(err) {
-			                        if(err) {
-			                            logger.error('Could not create controller.js for resource '+ resourceID + err);
-			                            return reject('Could not create device controller file, error ' + err);
-			                        }
-			                        logger.info('Created ' + resourceID + ' controller.js file');
-			                        var deviceController = require(controller_dir + '/controller');
+		    				mkdirp(autogen_dir, function(err) {
+		    					if(err) {
+				                    logger.error(autogen_dir + ' dir could not be created ' +  err);
+				                    return reject('Could not create directory ' + autogen_dir + ' error ' + err);
+		    					}
+					            mkdirp(controller_dir, function(err) {
+					                if(err) {
+					                    logger.error(controller_dir + ' dir could not be created ' +  err);
+					                    return reject('Could not create directory ' + controller_dir + ' error ' + err);
+					                }
+				                    fs.writeFile(controller_dir + '/controller.js', genericController, function(err) {
+				                        if(err) {
+				                            logger.error('Could not create controller.js for resource '+ resourceID + err);
+				                            return reject('Could not create device controller file, error ' + err);
+				                        }
+				                        logger.info('Created ' + resourceID + ' controller.js file');
+				                        var deviceController = require(controller_dir + '/controller');
 
-			                        //Stop if this controller is already running
-			                        self.commands.stop(resourceID, true).then(function() {
-			                        	self._deviceControllers[resourceID] = new deviceController(resourceID);
-				                        self._deviceControllers[resourceID].start({
-				                        	fc: self._fc, 
-				                        	resourceID: resourceID, 
-				                        	scheduler: self._scheduler, 
-				                        	metadata: dcMetaData,
-				                        	interfaces: interfaces
-				                        }).then(function() {
-				    						self._deviceMetaData[resourceID] = dcMetaData;
-				                        	self._deviceControllerState[resourceID] = 'running';
-				                        	logger.info('Device instance created successfully ' + resourceID);
-				                        	resolve('Started device controller with resourceID- ' + resourceID);
-				                        }, function(err) {
-				                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
-				                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
-				                        });
-			                        })
-			                    });
-				            })
+				                        //Stop if this controller is already running
+				                        self.commands.stop(resourceID, true).then(function() {
+				                        	self._deviceControllers[resourceID] = new deviceController(resourceID);
+					                        self._deviceControllers[resourceID].start({
+					                        	fc: self._fc, 
+					                        	resourceID: resourceID, 
+					                        	scheduler: self._scheduler, 
+					                        	metadata: dcMetaData,
+					                        	interfaces: interfaces
+					                        }).then(function() {
+					    						self._deviceMetaData[resourceID] = dcMetaData;
+					                        	self._deviceControllerState[resourceID] = 'running';
+					                        	logger.info('Device instance created successfully ' + resourceID);
+					                        	resolve('Started device controller with resourceID- ' + resourceID);
+					                        }, function(err) {
+					                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
+					                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
+					                        });
+				                        })
+				                    });
+					            })
+		    				})
 		    			}, function(err) {
 		    				logger.error('Failed to get registered interfaces ' + JSON.stringify(err));
 		    				return reject('Failed to get registered interfaces ' + JSON.stringify(err));
@@ -278,15 +284,20 @@ var ModbusRTU = {
 				var resourceID = generateResourceId(dcMetaData);
 				var path = self._runtimeDirectory + '/' + resourceID + '.json';
 				if(!fs.existsSync(path) || !!overwrite) {
-					return fs.writeFile(path, JSON.stringify(dcMetaData, null, 4), function(err) {
-		                if(err) {
-		                    logger.error('Could not save resource type '+ resourceID + ', error: ' + JSON.stringify(err));
-		                    reject('Could not save resource type '+ resourceID + ', error: ' + JSON.stringify(err));
-		                } else {
-		                    logger.info('Created ' + path + ' successfully');
-							resolve({info: 'Saved successfully with filename and resourceID ' + resourceID, metaData: dcMetaData});
-		                }
-		            });	
+					return mkdirp(self._runtimeDirectory, function(err) {
+						if(err) {
+							return reject(err);
+						}
+						return fs.writeFile(path, JSON.stringify(dcMetaData, null, 4), function(err) {
+			                if(err) {
+			                    logger.error('Could not save resource type '+ resourceID + ', error: ' + JSON.stringify(err));
+			                    reject('Could not save resource type '+ resourceID + ', error: ' + JSON.stringify(err));
+			                } else {
+			                    logger.info('Created ' + path + ' successfully');
+								resolve({info: 'Saved successfully with filename and resourceID ' + resourceID, metaData: dcMetaData});
+			                }
+			            });	
+					})
 				} else {
 					logger.warn('File already exists- ' + resourceID + ', not saving it to runtime directory');
 					logger.info('Reading the existing file and returning that metadata');
