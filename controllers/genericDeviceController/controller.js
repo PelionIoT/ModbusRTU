@@ -13,8 +13,8 @@ var {{controllerClassName}} = {
         this._interfaces = options.metadata.interfaces;
         this._slaveAddress = options.metadata.slaveAddress;
         this._devjsInterfaces = options.interfaces;
+        this._facadeState = {};
         this._facadeData = {};
-        this._facadeListeners = [];
 
         //Register each interface polling to scheduler
         Object.keys(self._interfaces).forEach(function(intf) {
@@ -23,20 +23,24 @@ var {{controllerClassName}} = {
                 logger.info('Registering facade ' + facade + ' with scheduler at polling interval ' + self._interfaces[intf].pollingInterval + 'ms');
                 self._scheduler.registerCommand(self._id, self._interfaces[intf].pollingInterval, facade);
 
-                //Listen for events from scheduler
-                if(self._facadeListeners.indexOf(facade) == -1) {
-                    logger.trace('adding facade to listener ' + facade);
-                    self._facadeListeners.push(facade);
-                }
+                self._facadeData[facade] = self._interfaces[intf];
+
                 self._scheduler.on(self._id + facade, function(state, data) {
-                    logger.debug('got data from polling ' + data);
-                    if(typeof self._facadeData[state] === 'undefined') {
-                        self._facadeData[state] = null;
+                    logger.info('got data from polling ' + data);
+                    if(typeof self._facadeState[state] === 'undefined') {
+                        self._facadeState[state] = null;
                     }
 
-                    if(self._facadeData[state] != data) {
-                        self._facadeData[state] = data;
-                        self.emit(state, data);
+                    if(self._facadeState[state] != data) {
+                        if( (typeof data === 'string') ||
+                            (typeof data === 'object') ||
+                            (typeof data !== 'object' && typeof self._facadeData[facade].eventThreshold === 'undefined') ||
+                            (typeof data !== 'object' && typeof self._facadeData[facade].eventThreshold !== 'undefined' 
+                                && (Math.abs(self._facadeState[state] - data) >= self._facadeData[facade].eventThreshold))
+                        ) {
+                            self._facadeState[state] = data;
+                            self.emit(state, data);
+                        }
                     }
                 })
             }
@@ -48,8 +52,7 @@ var {{controllerClassName}} = {
     stop: function() {
         var self = this;
         this._scheduler.deleteResourceScheduler(this._id);
-        logger.trace('Removing _facadeListeners ' + JSON.stringify(this._facadeListeners));
-        this._facadeListeners.forEach(function(facade) {
+        Object.keys(this.state).forEach(function(facade) {
             self._scheduler.removeAllListeners(self._id + facade);
         })
     },
@@ -77,6 +80,85 @@ var {{controllerClassName}} = {
                 })
             },
             set: function(value) {
+                return 'Not yet implemented';
+            }
+        },
+        register: {
+            get: function() {
+                var self = this;
+                var ret;
+                return new Promise(function(resolve, reject) {
+                    if(typeof self._interfaces['Facades/Register'] === 'undefined') {
+                        return reject('This facade is not supported by controller');
+                    }
+                    return self._fc.readHoldingRegisters(
+                        self._slaveAddress, 
+                        self._interfaces['Facades/Register'].dataAddress, 
+                        self._interfaces['Facades/Register'].range, 
+                        function(err, data) {
+                        if(err) {
+                            return reject('Failed with error ' + err)
+                        }  
+                        ret = data._response._data;
+                        logger.info('Got register ' + ret);
+                        return resolve(ret);
+                    })
+                })
+            },
+            set: function(value) {
+                return 'Not yet implemented';
+            }
+        },
+        temperature: {
+            get: function() {
+                var self = this;
+                var ret;
+                return new Promise(function(resolve, reject) {
+                    if(typeof self._interfaces['Facades/HasTemperature'] === 'undefined') {
+                        return reject('This facade is not supported by controller');
+                    }
+                    return self._fc.readHoldingRegisters(
+                        self._slaveAddress, 
+                        self._interfaces['Facades/HasTemperature'].dataAddress, 
+                        self._interfaces['Facades/HasTemperature'].range, 
+                        function(err, data) {
+                        if(err) {
+                            return reject('Failed with error ' + err)
+                        }  
+                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasTemperature'].outgoingOperation);
+                        logger.trace('Got temperature ' + ret);
+                        return resolve(ret);
+                    })
+                })
+            },
+            set: function(value) {
+                return 'Not yet implemented';
+            }
+        },
+        luminance: {
+            get: function() {
+                var self = this;
+                var ret;
+                return new Promise(function(resolve, reject) {
+                    if(typeof self._interfaces['Facades/HasLuminance'] === 'undefined') {
+                        return reject('This facade is not supported by controller');
+                    }
+                    return self._fc.readHoldingRegisters(
+                        self._slaveAddress, 
+                        self._interfaces['Facades/HasLuminance'].dataAddress, 
+                        self._interfaces['Facades/HasLuminance'].range, 
+                        function(err, data) {
+                        if(err) {
+                            return reject('Failed with error ' + err)
+                        }  
+                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasLuminance'].outgoingOperation);
+                        logger.trace('Got luminance ' + ret);
+                        return resolve(ret);
+                    })
+                })
+            },
+            set: function(value) {
+                return 'Not yet implemented';
             }
         }
     },

@@ -339,7 +339,7 @@ var ModbusRTU = {
 			}, 5000)
 		},
 		listDevices: function() {
-			return Object.keys(this._deviceControllers);
+			return Object.keys(this._deviceMetaData);
 		},
 		listResources: function() {
 			return this.commands.listDevices();
@@ -394,34 +394,13 @@ var ModbusRTU = {
 		        });
 			})
 		},
-		// startAll: function() {
-		// 	var self = this;
-		// 	var p = [];
-		// 	return new Promise(function(resolve, reject) {
-		// 		return self.commands.createRuntimeDeviceTypes().then(function() {
-		// 			return fs.readdir(self._runtimeDirectory, function (err, files) {
-		// 	            if(err) {
-		// 	                logger.error('Could not read the runtime resource directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
-		// 	                reject('Could not read the runtime resource directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
-		// 	                return;
-		// 	            }
-
-		// 	            logger.info('Supported resource types- ' + JSON.stringify(files));
-		// 	            files.forEach(function(file) {
-		// 	            	p.push(self.commands.start(file));
-		// 	            });
-
-		// 	          	Promise.all(p).then(function(result) {
-		// 	          		resolve(result);
-		// 	          	}, function(err) {
-		// 	          		reject(err);
-		// 	          	})
-		// 	        });
-		// 		})	
-		// 	})
-		// },
 		startAllResources: function() {
 			return this.commands.startAll();
+		},
+		logLevel: function(level) {
+			if(typeof level === 'number' && level >= 0) {
+				global.GLOBAL.ModbusLogLevel = level
+			}
 		},
 		help: function() {
 			//List the functions supported

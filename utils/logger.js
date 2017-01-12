@@ -40,39 +40,49 @@ var Logger = function(options) {
 	}
 }
 
-Logger.prototype.info = function(str) {
-	if(typeof logger.info != 'undefined')
-		logger.info(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
-	else
-		console.info(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+Logger.prototype.error = function(str) {
+	if(typeof global.GLOBAL.ModbusLogLevel != 'undefined' && global.GLOBAL.ModbusLogLevel >= 0) {
+		if(typeof logger.error != 'undefined')
+			logger.error(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+		else 
+			console.error(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	}
 }
 
 Logger.prototype.warn = function(str) {
-	if(typeof logger.warn != 'undefined')
-		logger.warn(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
-	else
-		console.warn(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	if(typeof global.GLOBAL.ModbusLogLevel != 'undefined' && global.GLOBAL.ModbusLogLevel >= 1) {
+		if(typeof logger.warn != 'undefined')
+			logger.warn(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+		else
+			console.warn(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	}
 }
 
-Logger.prototype.error = function(str) {
-	if(typeof logger.error != 'undefined')
-		logger.error(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
-	else 
-		console.error(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+Logger.prototype.info = function(str) {
+	if(typeof global.GLOBAL.ModbusLogLevel != 'undefined' && global.GLOBAL.ModbusLogLevel >= 2) {
+		if(typeof logger.info != 'undefined')
+			logger.info(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+		else
+			console.log(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	}
 }
 
 Logger.prototype.debug = function(str) {
-	if(typeof logger.debug != 'undefined')
-		logger.debug(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
-	else
-		console.log(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	if(typeof global.GLOBAL.ModbusLogLevel != 'undefined' && global.GLOBAL.ModbusLogLevel >= 3) {
+		if(typeof logger.info != 'undefined')
+			logger.info(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+		else
+			console.log(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	}
 }
 
 Logger.prototype.trace = function(str) {
-	if(typeof logger.trace != 'undefined')
-		logger.trace(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
-	else
-		console.trace(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	if(typeof global.GLOBAL.ModbusLogLevel != 'undefined' && global.GLOBAL.ModbusLogLevel >= 4) {
+		if(typeof logger.info != 'undefined')
+			logger.info(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+		else
+			console.log(this.color('[' + getDateTime() + '] ModbusRTU' + ' ' + this._moduleName + ': ' +  str));
+	}
 }
 
 module.exports = Logger;

@@ -11,6 +11,9 @@ var logger = new Logger( {moduleName: 'Driver', color: 'bgGreen'} );
 configurator.configure("ModbusRTU",__dirname).then(function(data) {
 	var options = data;
 
+	//Set loglevel
+	global.GLOBAL.ModbusLogLevel = options.logLevel || 2;
+
 	logger.info('Starting with options ' + JSON.stringify(options));
 
 	function startModbus() {
