@@ -95,3 +95,7 @@ dev$.selectByID('ModbusRTU').call('start', {
 	}
 });
 ```
+
+References:
+
+1. Facades - You can find the built-in facades with devicejs here https://github.com/WigWagCo/devicejs-core-modules/tree/development/core-interfaces/facades. To create your own facade follow how to start device controller documentation. 
