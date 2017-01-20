@@ -24,10 +24,10 @@ var Transport = function(options) {
 	this._serialInterfaceOptions = options.serialInterfaceOptions;
 
 	this._serialComm = null;
-	
+
 	//Queue for outgoing messages
 	this._txQueue = [];
-	
+
 	//utils for indivdual transmissions
 	this._ackTimeout = null;
 	this._resendCount = 0;
@@ -113,23 +113,25 @@ Transport.prototype.completeSendSequence = function(e) {
 	var self = this;
     var msg = this._txQueue.shift(); //FIFO
 
-    this._resendCount = 0;
-    // logger.debug('Msg' + msg._msgId + ' ' + msg._description + ' complete send sequence');
-    logger.trace('Msg' + msg._msgId + ' complete send sequence ' + JSON.stringify(msg));
+    if(msg) {
+        this._resendCount = 0;
+        // logger.debug('Msg' + msg._msgId + ' ' + msg._description + ' complete send sequence');
+        logger.trace('Msg' + msg._msgId + ' complete send sequence ' + JSON.stringify(msg));
 
-    logger.debug('Proceed to next msg send');
-    // this will cause it to continue to send queued commands
-    clearTimeout(this._ackTimeout);
-    delete this._ackTimeout;
+        logger.debug('Proceed to next msg send');
+        // this will cause it to continue to send queued commands
+        clearTimeout(this._ackTimeout);
+        delete this._ackTimeout;
 
-    try {
-        logger.debug('Msg' + msg._msgId + ' call message callback, error- ' + e);
-        msg._reqCB(msg._msgId, e);
-    }
-    catch(err) {
-        // log error, doesn't really matter to this layer
-        // we just don't want to crash anything here
-       	logger.error('Msg' + msg._msgId + ' request callback error ' + err);
+        try {
+            logger.debug('Msg' + msg._msgId + ' call message callback, error- ' + e);
+            msg._reqCB(msg._msgId, e);
+        }
+        catch(err) {
+            // log error, doesn't really matter to this layer
+            // we just don't want to crash anything here
+           	logger.error('Msg' + msg._msgId + ' request callback error ' + err);
+        }
     }
 
     setTimeout(function() {
@@ -147,7 +149,7 @@ The waiting period MUST be calculated per the following formula:
 T waiting = 100ms + n*1000ms
 where n is incremented at each retransmission.
 n=0 is used for the first waiting period.
-A host or Z-Wave chip MUST NOT carry out more than 3 retransmissions. 
+A host or Z-Wave chip MUST NOT carry out more than 3 retransmissions.
 
 It should be noted that a host
 MAY choose to do a hard reset of the Z-Wave module if it is not able to do a successful frame delivery

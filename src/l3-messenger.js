@@ -16,8 +16,7 @@ var Messenger = function(options) {
 	this._msgId = 0;
 	this._seqId = 0;
 	this._transport = null;
-}
-
+};
 
 Messenger.prototype = Object.create(EventEmitter.prototype);
 

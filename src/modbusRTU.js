@@ -12,10 +12,14 @@ var generic_controllerFileName = generic_templateDir + '/controller.js';
 var autogen_dir = __dirname + '/../controllers/autogenDeviceControllers';
 
 
-function generateResourceId(dcMetaData) {
-	var resourceID = dcMetaData.resourceID;
-	if(typeof dcMetaData.resourceID === 'undefined' || dcMetaData.resourceID.length == 0) {
-		resourceID = dcMetaData.name.replace(/[/]/g,'_') + dcMetaData.deviceGenre.replace(/[/]/g,'_') + dcMetaData.slaveAddress;
+function generateResourceId(dcMetaData, siodev, relayId) {
+	var resourceID = dcMetaData.resourceID.replace(/[^a-zA-Z0-9]/g,'');
+	if(typeof dcMetaData.resourceID === 'undefined' || dcMetaData.resourceID.length === 0) {
+		resourceID = new Buffer(dcMetaData.name.replace(/[/]/g,'_') +
+			dcMetaData.deviceGenre.replace(/[/]/g,'_') +
+			dcMetaData.slaveAddress +
+			siodev.replace(/[/]/g,'') +
+			relayId.replace(/[/]/g,'')).toString('base64').replace(/[^a-zA-Z0-9]/g,'');
 	}
 	return resourceID;
 }
@@ -39,8 +43,8 @@ function checkAndReadFile(file) {
 			} else {
 				reject('Could not read file ' + file);
 			}
-		})
-	})
+		});
+	});
 }
 
 /**
@@ -56,8 +60,10 @@ var ModbusRTU = {
 		logger.info('Starting controller');
 		this._fc = obj.fc;
 		this._scheduler = obj.scheduler;
-		this._resourceDirectory = obj.resourceTypesDirectory;
-		this._runtimeDirectory = obj.runtimeDirectory;
+		this._siodev = obj.siodev;
+		this._relayId = obj.relayId;
+		this._resourceDirectory = __dirname + '/../' + obj.resourceTypesDirectory;
+		this._runtimeDirectory = __dirname + '/../' + obj.runtimeDirectory;
 
 		this._deviceControllers = {};
 		this._deviceMetaData = {};
@@ -81,93 +87,6 @@ var ModbusRTU = {
 
 			logger.info('Got start on device ' + JSON.stringify(device));
 
-			function startDeviceController(dcMetaData) {
-				return new Promise(function(resolve, reject) {
-					//1. Generate unique resource ID
-					var resourceID = generateResourceId(dcMetaData);
-					logger.info('Using resource ID ' + resourceID);
-
-					if(!dcMetaData.enable) {
-				    	self._deviceMetaData[resourceID] = dcMetaData;
-						logger.warn('Found disabled resource ' + resourceID + ', not starting device controller');
-						return resolve('Found disabled resource ' + resourceID + ', not starting device controller')
-					}
-
-
-					//2. Register the resource type with devicejs
-					var resourceTypeName = (dcMetaData.resourceType || "Core/Devices/ModbusRTU") + '/' + resourceID;
-					var interfaces = Object.keys(dcMetaData.interfaces);
-
-					var resourceConfig = {
-						name: resourceTypeName,
-						version: dcMetaData.version || "0.0.1",
-						interfaces: interfaces
-					}
-
-					dev$.addResourceType(resourceConfig).then(function() {
-						logger.info('Successfully added resource type ' + resourceTypeName);
-	                }, function(err) {
-	                    logger.error('Could not add resource type ' + err);
-	                    return reject('Could not add resource type ' + err);
-	                }).then(function() {
-						dev$.listInterfaceTypes().then(function(interfaces) {
-	                	//3. Handlebars controller
-							var genericController = fs.readFileSync(generic_controllerFileName, 'utf8');
-		                    var template = handleBars.compile(genericController);
-		                    var data = {};
-		                    data.controllerClassName = resourceID;
-		                    data.resourceName = resourceTypeName;  
-		                    genericController = template(data);
-
-		    				var controller_dir = autogen_dir + '/' + resourceID;
-		    				mkdirp(autogen_dir, function(err) {
-		    					if(err) {
-				                    logger.error(autogen_dir + ' dir could not be created ' +  err);
-				                    return reject('Could not create directory ' + autogen_dir + ' error ' + err);
-		    					}
-					            mkdirp(controller_dir, function(err) {
-					                if(err) {
-					                    logger.error(controller_dir + ' dir could not be created ' +  err);
-					                    return reject('Could not create directory ' + controller_dir + ' error ' + err);
-					                }
-				                    fs.writeFile(controller_dir + '/controller.js', genericController, function(err) {
-				                        if(err) {
-				                            logger.error('Could not create controller.js for resource '+ resourceID + err);
-				                            return reject('Could not create device controller file, error ' + err);
-				                        }
-				                        logger.info('Created ' + resourceID + ' controller.js file');
-				                        var deviceController = require(controller_dir + '/controller');
-
-				                        //Stop if this controller is already running
-				                        self.commands.stop(resourceID, true).then(function() {
-				                        	self._deviceControllers[resourceID] = new deviceController(resourceID);
-					                        self._deviceControllers[resourceID].start({
-					                        	fc: self._fc, 
-					                        	resourceID: resourceID, 
-					                        	scheduler: self._scheduler, 
-					                        	metadata: dcMetaData,
-					                        	interfaces: interfaces
-					                        }).then(function() {
-					    						self._deviceMetaData[resourceID] = dcMetaData;
-					                        	self._deviceControllerState[resourceID] = 'running';
-					                        	logger.info('Device instance created successfully ' + resourceID);
-					                        	resolve('Started device controller with resourceID- ' + resourceID);
-					                        }, function(err) {
-					                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
-					                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
-					                        });
-				                        })
-				                    });
-					            })
-		    				})
-		    			}, function(err) {
-		    				logger.error('Failed to get registered interfaces ' + JSON.stringify(err));
-		    				return reject('Failed to get registered interfaces ' + JSON.stringify(err));
-		    			});
-	                })
-				})
-			}
-
 			if(typeof device === 'string' && device.indexOf("/") > -1) {
 				//File path
 				if(device.indexOf('~') > -1) {
@@ -176,7 +95,7 @@ var ModbusRTU = {
 				return checkAndReadFile(device).then(function(dcMetaData) {
 					//Save this to a file so that it can be started on reboot
 					return self.commands.save(dcMetaData, !!dcMetaData.overwrite).then(function(resp) {
-						return startDeviceController(resp.metaData);
+						return self.commands._startDeviceController(resp.metaData);
 					})
 				})
 			} else if (typeof device === 'string' && device.indexOf("/") == -1) {
@@ -186,26 +105,26 @@ var ModbusRTU = {
 					if(typeof self._deviceMetaData[device] === 'undefined') {
 						return Promise.reject('Did not find any resource with this id ' + device);
 					} else {
-						return startDeviceController(self._deviceMetaData[device]);
+						return self.commands._startDeviceController(self._deviceMetaData[device]);
 					}
 				} else {
 					//Look for this file in resourceTypes directory
-					var filepath = __dirname + '/../' + this._resourceDirectory + '/' + device;
+					var filepath = this._resourceDirectory + '/' + device;
 					return checkAndReadFile(filepath).then(function(dcMetaData) {
 						//Save this to a file so that it can be started on reboot
 						return self.commands.save(dcMetaData, !!dcMetaData.overwrite).then(function(resp) {
-							return startDeviceController(resp.metaData);
+							return self.commands._startDeviceController(resp.metaData);
 						})
-					})	
+					})
 				}
 			} else if (typeof device === 'object' && typeof device.commandID === 'undefined' && typeof device.resourceSet === 'undefined') {
 				//Device metadata object
 				try {
 					var dcMetaData = JSON.parse(JSON.stringify(device));
-					var resourceID = generateResourceId(dcMetaData);
+					var resourceID = generateResourceId(dcMetaData, self._siodev, self._relayId);
 					//Save this to a file so that it can be started on reboot
 					return self.commands.save(dcMetaData, true).then(function(resp) {
-						return startDeviceController(resp.metaData);
+						return self.commands._startDeviceController(resp.metaData);
 					})
 				} catch(e) {
 					logger.error('Failed to parse JSON object ' + e);
@@ -219,7 +138,7 @@ var ModbusRTU = {
 		 * Stop device controller
 		 *
 		 * @method start
-		 * @param {String} resourceId Specify resourceID of the device controller to be stopped 
+		 * @param {String} resourceId Specify resourceID of the device controller to be stopped
 		 * @return {Promise} The success handler accepts no parameter. The failure
 		 *  handler accepts a single error object.
 		 */
@@ -235,7 +154,7 @@ var ModbusRTU = {
 				}
 
 				logger.warn('Stopping running device controller with resourceID ' + resourceID);
-				self._deviceControllers[resourceID].stop();	
+				self._deviceControllers[resourceID].stop();
 				self._deviceControllerState[resourceID] = 'stopped';
 				if(typeof cleanMemory !== 'object' && !!cleanMemory) {
 					delete self._deviceControllers[resourceID];
@@ -281,7 +200,7 @@ var ModbusRTU = {
 				return Promise.reject('Please specify device metadata, got undefined')
 			}
 			return new Promise(function(resolve, reject) {
-				var resourceID = generateResourceId(dcMetaData);
+				var resourceID = generateResourceId(dcMetaData, self._siodev, self._relayId);
 				var path = self._runtimeDirectory + '/' + resourceID + '.json';
 				if(!fs.existsSync(path) || !!overwrite) {
 					return mkdirp(self._runtimeDirectory, function(err) {
@@ -296,7 +215,7 @@ var ModbusRTU = {
 			                    logger.info('Created ' + path + ' successfully');
 								resolve({info: 'Saved successfully with filename and resourceID ' + resourceID, metaData: dcMetaData});
 			                }
-			            });	
+			            });
 					})
 				} else {
 					logger.warn('File already exists- ' + resourceID + ', not saving it to runtime directory');
@@ -314,7 +233,7 @@ var ModbusRTU = {
 			}
 			return new Promise(function(resolve, reject) {
 				return self.commands.stop(resourceID, true).then(function() {
-					fs.unlinkSync(self._runtimeDirectory + '/' + resourceID + '.json')	
+					fs.unlinkSync(self._runtimeDirectory + '/' + resourceID + '.json')
 					resolve('Device controller stopped and resource type delete for ' + resourceID);
 				}, function(err) {
 					reject('Could not delete ' + resourceID + ' error: ' + JSON.stringify(err));
@@ -341,6 +260,9 @@ var ModbusRTU = {
 		listDevices: function() {
 			return Object.keys(this._deviceMetaData);
 		},
+		getMetadata: function(resourceID) {
+			return this._deviceMetaData[resourceID];
+		},
 		listResources: function() {
 			return this.commands.listDevices();
 		},
@@ -356,61 +278,190 @@ var ModbusRTU = {
 
 			return new Promise(function(resolve, reject) {
 				Object.keys(self._deviceControllers).forEach(function(resourceID) {
-					p.push(self.commands.delete(resourceID));	
-				})
+					p.push(self.commands.delete(resourceID));
+				});
 				Promise.all(p).then(function() {
 					logger.info('Deleted all resources');
 					resolve();
 				}, function(err) {
 					logger.error('Deleting all resource failed with err ' + JSON.stringify(err));
 					reject(err);
-				})
-			})
+				});
+			});
 		},
 		deleteAll: function() {
 			return this.commands.deleteRuntime();
-		},	
-		startAll: function() {
+		},
+		_startDeviceController: function(dcMetaData) {
+			var self = this;
+			return new Promise(function(resolve, reject) {
+				//1. Generate unique resource ID
+				var resourceID = generateResourceId(dcMetaData, self._siodev, self._relayId);
+				logger.info('Using resource ID ' + resourceID);
+
+				if(!dcMetaData.enable) {
+			    	self._deviceMetaData[resourceID] = dcMetaData;
+					logger.warn('Found disabled resource ' + resourceID + ', not starting device controller');
+					return resolve('Found disabled resource ' + resourceID + ', not starting device controller');
+				}
+
+
+				//2. Register the resource type with devicejs
+				var resourceTypeName = (dcMetaData.resourceType || "Core/Devices/ModbusRTU") + '/' + resourceID;
+				var interfaces = Object.keys(dcMetaData.interfaces);
+
+				var resourceConfig = {
+					name: resourceTypeName,
+					version: dcMetaData.version || "0.0.1",
+					interfaces: interfaces
+				};
+
+				dev$.addResourceType(resourceConfig).then(function() {
+					logger.info('Successfully added resource type ' + resourceTypeName);
+                }, function(err) {
+                    logger.error('Could not add resource type ' + err);
+                    return reject('Could not add resource type ' + err);
+                }).then(function() {
+					dev$.listInterfaceTypes().then(function(interfaces) {
+                	//3. Handlebars controller
+						var genericController = fs.readFileSync(generic_controllerFileName, 'utf8');
+	                    var template = handleBars.compile(genericController);
+	                    var data = {};
+	                    data.controllerClassName = resourceID;
+	                    data.resourceName = resourceTypeName;
+	                    genericController = template(data);
+
+	    				var controller_dir = autogen_dir + '/' + resourceID;
+	    				mkdirp(autogen_dir, function(err) {
+	    					if(err) {
+			                    logger.error(autogen_dir + ' dir could not be created ' +  err);
+			                    return reject('Could not create directory ' + autogen_dir + ' error ' + err);
+	    					}
+				            mkdirp(controller_dir, function(err) {
+				                if(err) {
+				                    logger.error(controller_dir + ' dir could not be created ' +  err);
+				                    return reject('Could not create directory ' + controller_dir + ' error ' + err);
+				                }
+			                    fs.writeFile(controller_dir + '/controller.js', genericController, function(err) {
+			                        if(err) {
+			                            logger.error('Could not create controller.js for resource '+ resourceID + err);
+			                            return reject('Could not create device controller file, error ' + err);
+			                        }
+			                        logger.info('Created ' + resourceID + ' controller.js file');
+			                        var deviceController = require(controller_dir + '/controller');
+
+			                        //Stop if this controller is already running
+			                        self.commands.stop(resourceID, true).then(function() {
+			                        	self._deviceControllers[resourceID] = new deviceController(resourceID);
+				                        self._deviceControllers[resourceID].start({
+				                        	fc: self._fc,
+				                        	resourceID: resourceID,
+				                        	scheduler: self._scheduler,
+				                        	metadata: dcMetaData,
+				                        	interfaces: interfaces
+				                        }).then(function() {
+				    						self._deviceMetaData[resourceID] = dcMetaData;
+				                        	self._deviceControllerState[resourceID] = 'running';
+				                        	logger.info('Device instance created successfully ' + resourceID);
+				                        	resolve('Started device controller with resourceID- ' + resourceID);
+				                        }, function(err) {
+				                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
+				                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
+				                        });
+			                        });
+			                    });
+				            });
+	    				});
+	    			}, function(err) {
+	    				logger.error('Failed to get registered interfaces ' + JSON.stringify(err));
+	    				return reject('Failed to get registered interfaces ' + JSON.stringify(err));
+	    			});
+                });
+			});
+		},
+		_generateRuntimeResources: function() {
 			var self = this;
 			var p = [];
 			return new Promise(function(resolve, reject) {
-		        return fs.readdir(self._resourceDirectory, function (err, files) {
-		            if(err) {
-		                logger.error('Could not read the supported resource directory '+ self._resourceDirectory + ', error: ' + JSON.stringify(err));
-		                reject('Could not read the supported resource directory '+ self._resourceDirectory + ', error: ' + JSON.stringify(err));
+				return fs.readdir(self._resourceDirectory, function(err, files) {
+					if(err) {
+						if(err.code === 'ENOENT') {
+							logger.warn('Could not find resource directory. Nothing there to start, resolving...');
+							return resolve();
+						}
+		                logger.error('Could not read the supported resource directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
+		                reject('Could not read the supported resource directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
 		                return;
-		            }
+					}
 
-		            files.forEach(function(file) {
-		            	// p.push(self.commands.save(self._resourceDirectory + '/' + file, false));
-			            p.push(self.commands.start(file));
-		            });
+					function saveRuntime(filepath) {
+						return checkAndReadFile(filepath).then(function(metadata) {
+							return self.commands.save(metadata, !!metadata.overwrite);
+						});
+					}
+
+					files.forEach(function(file) {
+						var filepath = self._resourceDirectory + '/' + file;
+						p.push(saveRuntime(filepath));
+					});
 
 		          	Promise.all(p).then(function(result) {
 		          		resolve(result);
 		          	}, function(err) {
 		          		reject(err);
-		          	})
-		        });
-			})
+		          	});
+				});
+			});
+		},
+		startAll: function() {
+			var self = this;
+			var p = [];
+			return new Promise(function(resolve, reject) {
+				return self.commands._generateRuntimeResources().then(function() {
+					return fs.readdir(self._runtimeDirectory, function (err, files) {
+			            if(err) {
+			            	if(err.code === 'ENOENT') {
+			            		logger.warn('Could not find runtime directory. Nothing there to start, resolving...');
+			            		return resolve();
+			            	}
+			                logger.error('Could not read the supported runtime directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
+			                reject('Could not read the supported runtime directory '+ self._runtimeDirectory + ', error: ' + JSON.stringify(err));
+			                return;
+			            }
+
+			            function startController(filepath) {
+		            		return checkAndReadFile(filepath).then(function(metadata) {
+		            			return self.commands._startDeviceController(metadata);
+		            		});
+			            }
+
+			            files.forEach(function(file) {
+			            	var filepath = self._runtimeDirectory + '/' + file;
+							p.push(startController(filepath));
+			            });
+
+			          	Promise.all(p).then(function(result) {
+			          		resolve(result);
+			          	}, function(err) {
+			          		reject(err);
+			          	});
+			        });
+				});
+			});
 		},
 		startAllResources: function() {
 			return this.commands.startAll();
 		},
 		logLevel: function(level) {
 			if(typeof level === 'number' && level >= 0) {
-				global.GLOBAL.ModbusLogLevel = level
+				global.GLOBAL.ModbusLogLevel = level;
 			}
 		},
 		help: function() {
 			//List the functions supported
 			return Object.keys(this.commands);
-			// {
-			// 	start: 'Start device controller based on filename, filepath, resourceId or device meta data JSON object',
-			// 	stop: 'Stop already running device controller based on resourceId'
-			// }
 		}
 	}
-}
+};
 
 module.exports = dev$.resource('ModbusRTU', ModbusRTU);

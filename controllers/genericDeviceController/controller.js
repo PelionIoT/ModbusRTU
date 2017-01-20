@@ -35,7 +35,7 @@ var {{controllerClassName}} = {
                         if( (typeof data === 'string') ||
                             (typeof data === 'object') ||
                             (typeof data !== 'object' && typeof self._facadeData[facade].eventThreshold === 'undefined') ||
-                            (typeof data !== 'object' && typeof self._facadeData[facade].eventThreshold !== 'undefined' 
+                            (typeof data !== 'object' && typeof self._facadeData[facade].eventThreshold !== 'undefined'
                                 && (Math.abs(self._facadeState[state] - data) >= self._facadeData[facade].eventThreshold))
                         ) {
                             self._facadeState[state] = data;
@@ -66,13 +66,13 @@ var {{controllerClassName}} = {
                         return reject('This facade is not supported by controller');
                     }
                     return self._fc.readHoldingRegisters(
-                        self._slaveAddress, 
-                        self._interfaces['Facades/Switchable'].dataAddress, 
-                        self._interfaces['Facades/Switchable'].range, 
+                        self._slaveAddress,
+                        self._interfaces['Facades/Switchable'].dataAddress,
+                        self._interfaces['Facades/Switchable'].range,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
-                        }  
+                        }
                         ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Switchable'].outgoingOperation);
                         logger.trace('Got power state ' + ret);
                         return resolve(ret);
@@ -92,13 +92,13 @@ var {{controllerClassName}} = {
                         return reject('This facade is not supported by controller');
                     }
                     return self._fc.readHoldingRegisters(
-                        self._slaveAddress, 
-                        self._interfaces['Facades/Register'].dataAddress, 
-                        self._interfaces['Facades/Register'].range, 
+                        self._slaveAddress,
+                        self._interfaces['Facades/Register'].dataAddress,
+                        self._interfaces['Facades/Register'].range,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
-                        }  
+                        }
                         ret = data._response._data;
                         logger.info('Got register ' + ret);
                         return resolve(ret);
@@ -118,13 +118,13 @@ var {{controllerClassName}} = {
                         return reject('This facade is not supported by controller');
                     }
                     return self._fc.readHoldingRegisters(
-                        self._slaveAddress, 
-                        self._interfaces['Facades/HasTemperature'].dataAddress, 
-                        self._interfaces['Facades/HasTemperature'].range, 
+                        self._slaveAddress,
+                        self._interfaces['Facades/HasTemperature'].dataAddress,
+                        self._interfaces['Facades/HasTemperature'].range,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
-                        }  
+                        }
                         ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasTemperature'].outgoingOperation);
                         logger.trace('Got temperature ' + ret);
                         return resolve(ret);
@@ -144,13 +144,13 @@ var {{controllerClassName}} = {
                         return reject('This facade is not supported by controller');
                     }
                     return self._fc.readHoldingRegisters(
-                        self._slaveAddress, 
-                        self._interfaces['Facades/HasLuminance'].dataAddress, 
-                        self._interfaces['Facades/HasLuminance'].range, 
+                        self._slaveAddress,
+                        self._interfaces['Facades/HasLuminance'].dataAddress,
+                        self._interfaces['Facades/HasLuminance'].range,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
-                        }  
+                        }
                         ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasLuminance'].outgoingOperation);
                         logger.trace('Got luminance ' + ret);
                         return resolve(ret);

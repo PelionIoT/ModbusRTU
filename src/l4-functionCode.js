@@ -77,7 +77,7 @@ FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_COIL_STATUS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -129,7 +129,7 @@ FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, leng
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_INPUT_STATUS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -181,7 +181,7 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_HOLDING_REGISTERS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -233,7 +233,7 @@ FunctionCode.prototype.readInputRegisters = function (address, dataAddress, leng
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_INPUT_REGISTERS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -289,7 +289,7 @@ FunctionCode.prototype.writeCoil = function (address, dataAddress, state, cb) {
 		msg.respLength(8);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.FORCE_SINGLE_COIL);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -341,7 +341,7 @@ FunctionCode.prototype.writeRegister = function (address, dataAddress, value, cb
 		msg.respLength(8);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.PRESET_SINGLE_REGISTER);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -393,7 +393,7 @@ FunctionCode.prototype.writeCoils = function (address, dataAddress, array, cb) {
 		msg.respLength(8);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.FORCE_MULTIPLE_COILS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -445,7 +445,7 @@ FunctionCode.prototype.writeRegisters = function (address, dataAddress, array, c
 		msg.respLength(8);
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.PRESET_MULTIPLE_REGISTERS);
-		
+
 		self._manager.push(msg, responseCB);
 		delete msg;
 	});
@@ -467,7 +467,7 @@ FunctionCode.prototype.evalOperation = function(inputData, operation) {
 	var template = handleBars.compile(JSON.stringify(operation));
     var info = {};
     info.value = inputData;
-    var outputData = eval(JSON.parse(template(info))); 
+    var outputData = eval(JSON.parse(template(info)));
     return (typeof outputData === 'number') ? outputData.toFixed(2)/1 : outputData;
 }
 

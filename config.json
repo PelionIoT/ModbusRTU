@@ -8,13 +8,14 @@
 		"endPacketTimeout": 15
 	},
 	"logLevel": 2, //Available- info- 2, debug- 3, trace- 4, error- 0, warn- 1
+	"relayId": "WWRL000000",
 	"platform": "", //Used to identify platform so that module can adapt and run automagically
 	"maxTransportRetries": 1, //Transport layer retries, message retries are default to 3 so total retries will be 4
 	"responseTimeout": 500, //Timeout if no data received on request (in ms)
 	"modbusResourceId": "ModbusRTU", //ID on which the Modbus module will be registered with DeviceJS
-	"supportedResourceTypesDirectory": "controllers/supportedResourceTypes", //Directory where all the resouces are or will be defined,
-	"runtimeResourceTypesDirectory": "controllers/runtimeResourceTypes",
+	"supportedResourceTypesDirectory": "controllers/supportedResourceTypes", //Relative path to directory where all the resouces are or will be defined,
+	"runtimeResourceTypesDirectory": "controllers/runtimeResourceTypes",//Relative path to directory where all the controllers started from command line will be saved
 	"simulate": false, //Should be false in production, if true it will run even if there is no terminal connected
-	"schedulerIntervalResolution": 500 //in ms, interval in which it will check if a resource command needs to be polled. Minimum 500ms. 
+	"schedulerIntervalResolution": 500 //in ms, interval in which it will check if a resource command needs to be polled. Minimum 500ms.
 									//Define polling interval of device controller at this resolution
 }
