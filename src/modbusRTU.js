@@ -8,6 +8,7 @@ var logger = new Logger( {moduleName: 'Manager', color: 'bgBlue'} );
 
 var generic_templateDir = __dirname + '/../controllers/genericDeviceController';
 var generic_controllerFileName = generic_templateDir + '/controller.js';
+var state_template = generic_templateDir + '/stateTemplate.js';
 
 var autogen_dir = __dirname + '/../controllers/autogenDeviceControllers';
 
@@ -308,7 +309,7 @@ var ModbusRTU = {
 
 				//2. Register the resource type with devicejs
 				var resourceTypeName = (dcMetaData.resourceType || "Core/Devices/ModbusRTU") + '/' + resourceID;
-				var interfaces = Object.keys(dcMetaData.interfaces);
+				var interfaces = (typeof dcMetaData.interfaces !== 'undefined') ? Object.keys(dcMetaData.interfaces) : Object.keys(dcMetaData.registers.interfaces);
 
 				var resourceConfig = {
 					name: resourceTypeName,
@@ -322,13 +323,31 @@ var ModbusRTU = {
                     logger.error('Could not add resource type ' + err);
                     return reject('Could not add resource type ' + err);
                 }).then(function() {
-					dev$.listInterfaceTypes().then(function(interfaces) {
-                	//3. Handlebars controller
+					dev$.listInterfaceTypes().then(function(interfaceTypes) {
+                		//3. Handlebars controller
+                		// if(interfaces.map(function(intf) { return (interfaceTypes.indexOf(intf) > -1); }).indexOf(false) > -1) {
+                		// 	logger.error('One or more interface/s is/are not listed in deviceJS database ' + interfaces + ' , thus could not create device controller');
+                		// 	return reject('Found interface which is not listed in deviceJS database, thus could not create device controller!');
+                		// }
+                		// console.log('hello')
+                		// var stateTemplate = fs.readFileSync(state_template, 'utf8');
+	                 //    var interfaceState = {};
+	                 //    interfaces.forEach(function(intf) {
+	                 //    	var temp = {};
+	                 //    	temp.stateName = Object.keys(interfaceTypes[intf]['0.0.1'].state)[0];
+	                 //    	temp.interfaceName = intf;
+
+	                 //    	interfaceState[temp.stateName] = handleBars.compile(stateTemplate)(temp);
+	                 //    });
+
+	                    // console.log('Got interface state ', jsonminify(interfaceState));
+
 						var genericController = fs.readFileSync(generic_controllerFileName, 'utf8');
 	                    var template = handleBars.compile(genericController);
 	                    var data = {};
 	                    data.controllerClassName = resourceID;
 	                    data.resourceName = resourceTypeName;
+	                    // data.allStates = JSON.parse(jsonminify(interfaceState));
 	                    genericController = template(data);
 
 	    				var controller_dir = autogen_dir + '/' + resourceID;
@@ -358,15 +377,15 @@ var ModbusRTU = {
 				                        	resourceID: resourceID,
 				                        	scheduler: self._scheduler,
 				                        	metadata: dcMetaData,
-				                        	interfaces: interfaces
+				                        	interfaceTypes: interfaceTypes
 				                        }).then(function() {
 				    						self._deviceMetaData[resourceID] = dcMetaData;
 				                        	self._deviceControllerState[resourceID] = 'running';
 				                        	logger.info('Device instance created successfully ' + resourceID);
 				                        	resolve('Started device controller with resourceID- ' + resourceID);
 				                        }, function(err) {
-				                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
-				                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + JSON.stringify(err));
+				                        	logger.error('Could not start controller with resourceID ' + resourceID + ' error ' + err + JSON.stringify(err));
+				                        	return reject('Could not start controller with resourceID ' + resourceID + ' error ' + err + JSON.stringify(err));
 				                        });
 			                        });
 			                    });

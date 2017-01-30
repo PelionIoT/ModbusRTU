@@ -6,7 +6,7 @@ var DataFrame = require('./../utils/dataFrame');
 var logger = new Logger( { moduleName: 'Transport', color: 'cyan'} );
 
 var MAX_TRANSPORT_RETRANSMIT = 3;
-var ACT_TIMEOUT = 1000; //ms
+var ACK_TIMEOUT = 300; //ms
 
 // flow control, streaming, etc on transport layer
 // this layer should send a message, handle resends and acks
@@ -20,7 +20,7 @@ var Transport = function(options) {
 
 	//constants
 	this._maxTransportRetransmit = options.maxTransportRetries || MAX_TRANSPORT_RETRANSMIT;
-	this._ackWaitTimeperiod = options.responseTimeout || ACT_TIMEOUT; //msecond, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
+	this._ackWaitTimeperiod = options.responseTimeout || ACK_TIMEOUT; //msecond, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
 	this._serialInterfaceOptions = options.serialInterfaceOptions;
 
 	this._serialComm = null;
@@ -132,6 +132,8 @@ Transport.prototype.completeSendSequence = function(e) {
             // we just don't want to crash anything here
            	logger.error('Msg' + msg._msgId + ' request callback error ' + err);
         }
+    } else {
+        logger.warn('Could not find any message in the txQueue to completeSendSequence');
     }
 
     setTimeout(function() {

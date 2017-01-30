@@ -4,7 +4,7 @@ var _default = {
 	ackRequired: true,
 	callback: null,
 	promise: null,
-	retries: 3,
+	retries: 0,
 	retryInterval: 100, //ms
 	description: "Unknown Message",
 	msgId: 0, //Incremented only when it is a new message
@@ -43,7 +43,7 @@ var Message = function(msg) {
 	this._request = new DataFrame();
 	if((typeof msg.dataFrame != 'undefined') && (!(msg.dataFrame instanceof DataFrame))) {
 		this._request = msg.dataFrame;
-	} 
+	}
 }
 
 Message.prototype.ackRequired = function(ack) {

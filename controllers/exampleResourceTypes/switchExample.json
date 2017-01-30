@@ -14,6 +14,7 @@
 			"dataAddress": 203, //Cannot be array of non consecutive addresses
 			"range": 1, //If not specified, default- 1
 			"pollingInterval": 1000, //Specify polling interval in ms, min 500ms
+			"readFunctionCode": 3,
 			"outgoingOperation": "{{value}} > 100 ? 'off' : 'on'", //If you want perform operation on output
 			"eventThreshold": 10, //incase of an array, it will compare each element if any element is greater than this then an event is emitted
 			"unit": "" //Default unitless

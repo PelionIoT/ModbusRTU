@@ -12,6 +12,7 @@
 	"interfaces": {
 		"Facades/Register": { //This should match the supported interfaces (described in core-interfaces)
 			"dataAddress": 200, //Cannot be array of non consecutive addresses
+			"readFunctionCode": 3,
 			"range": 10, //If not specified, default- 1
 			"pollingInterval": 1000, //Specify polling interval in ms, min 500ms
 			"outgoingOperation": "{{value}}", //If you want perform operation on output

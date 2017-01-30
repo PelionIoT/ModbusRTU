@@ -11,7 +11,7 @@ var Messenger = function(options) {
 	if(typeof options === 'undefined') {
 		options = {};
 	}
-	this._defaultResponseTimeout = 4000; //ms
+	this._defaultResponseTimeout = 1000; //ms
 	this._queue = [];
 	this._msgId = 0;
 	this._seqId = 0;

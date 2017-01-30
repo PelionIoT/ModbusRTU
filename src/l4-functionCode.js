@@ -8,7 +8,7 @@ var handleBars = require('handlebars');
 //The second byte sent by the Master is the Function code. This number tells the slave which table to access and whether to read from or write to the table.
 var FunctionCode = function() {
 	this._manager = null;
-}
+};
 
 // FunctionCode.prototype = Object.create(EventEmitter.prototype);
 
@@ -29,7 +29,51 @@ FunctionCode.prototype.start = function(opts) {
 			reject(err);
 		});
 	});
-}
+};
+
+FunctionCode.prototype.call = function(fc) {
+	var self = this;
+	switch(fc) {
+		case 0x01:
+			return function(a, d, l, c) { self.readCoils(a, d, l, c); };
+		break;
+
+		case 0x02:
+			return function(a, d, l, c) { self.readDiscreteInputs(a, d, l, c); };
+		break;
+
+		case 0x03:
+			return function(a, d, l, c) { self.readHoldingRegisters(a, d, l, c); };
+		break;
+
+		case 0x04:
+			return function(a, d, l, c) { self.readDiscreteInputs(a, d, l, c); };
+		break;
+
+		case 0x05:
+			return function(a, d, l, c) { self.writeCoil(a, d, l, c); };
+		break;
+
+		case 0x06:
+			return function(a, d, l, c) { self.writeRegister(a, d, l, c); };
+		break;
+
+		case 0x0F:
+			return function(a, d, l, c) { self.writeCoils(a, d, l, c); };
+		break;
+
+		case 0x10:
+			return function(a, d, l, c) { self.writeRegisters(a, d, l, c); };
+		break;
+
+		default:
+			logger.error('Unknown function code called. This should not have happened.');
+			return function(address, dataAddress, length, cb) {
+				return Promise.reject(new Error('Unknow function code called. This should not have happened!. Please assign function code from ' + Object.keys(DEFINES.FUNCTION_CODE_ID)))
+			};
+		break;
+	}
+};
 
 //(01) Read Coils
 FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
@@ -140,7 +184,6 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 	var self = this;
 	var promise = {};
 	var msg;
-
 	//Error handling
 	if(typeof cb !== 'function') {
 		throw new TypeError('readHoldingRegisters: Passed invalid argument')
