@@ -35,19 +35,19 @@ FunctionCode.prototype.call = function(fc) {
 	var self = this;
 	switch(fc) {
 		case 0x01:
-			return function(a, d, l, c) { self.readCoils(a, d, l, c); };
+			return function(a, d, l, o, c) { self.readCoils(a, d, l, o, c); };
 		break;
 
 		case 0x02:
-			return function(a, d, l, c) { self.readDiscreteInputs(a, d, l, c); };
+			return function(a, d, l, o, c) { self.readDiscreteInputs(a, d, l, o, c); };
 		break;
 
 		case 0x03:
-			return function(a, d, l, c) { self.readHoldingRegisters(a, d, l, c); };
+			return function(a, d, l, o, c) { self.readHoldingRegisters(a, d, l, o, c); };
 		break;
 
 		case 0x04:
-			return function(a, d, l, c) { self.readDiscreteInputs(a, d, l, c); };
+			return function(a, d, l, o, c) { self.readDiscreteInputs(a, d, l, o, c); };
 		break;
 
 		case 0x05:
@@ -76,7 +76,7 @@ FunctionCode.prototype.call = function(fc) {
 };
 
 //(01) Read Coils
-FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
+FunctionCode.prototype.readCoils = function (address, dataAddress, length, origin, cb) {
 	var self = this;
 	var promise = {};
 	var msg;
@@ -118,7 +118,7 @@ FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
 		msg._request.dataAddress(dataAddress);
 		msg._request.numCoils(length);
 
-		msg.requestType('readCoils' + address.toString() + dataAddress.toString() + length.toString());
+		msg.requestType(origin + 'readCoils' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
@@ -130,7 +130,7 @@ FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
 };
 
 //(02) Read Discrete Inputs
-FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, length, cb) {
+FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, length, origin, cb) {
 	var self = this;
 	var promise = {};
 	var msg;
@@ -172,7 +172,7 @@ FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, leng
 		msg._request.dataAddress(dataAddress);
 		msg._request.numCoils(length);
 
-		msg.requestType('readDiscreteInputs' + address.toString() + dataAddress.toString() + length.toString());
+		msg.requestType(origin + 'readDiscreteInputs' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
@@ -184,10 +184,11 @@ FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, leng
 };
 
 //(03) Reading Holding Registers
-FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, length, cb) {
+FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, length, origin, cb) {
 	var self = this;
 	var promise = {};
 	var msg;
+
 	//Error handling
 	if(typeof cb !== 'function') {
 		throw new TypeError('readHoldingRegisters: Passed invalid argument')
@@ -218,14 +219,13 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (03) Reading Holding Registers from data address 0x' + dataAddress.toString(16) + ' length ' + length + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (03) Reading Holding Registers from data address ' + dataAddress + ' length ' + length + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.READ_HOLDING_REGISTERS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.numRegisters(length);
-
-		msg.requestType('readHoldingRegisters' + address.toString() + dataAddress.toString() + length.toString());
+		msg.requestType(origin + 'readHoldingRegisters' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
@@ -237,7 +237,7 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 };
 
 //(04) Read Input Registers
-FunctionCode.prototype.readInputRegisters = function (address, dataAddress, length, cb) {
+FunctionCode.prototype.readInputRegisters = function (address, dataAddress, length, origin, cb) {
 	var self = this;
 	var promise = {};
 	var msg;
@@ -279,7 +279,7 @@ FunctionCode.prototype.readInputRegisters = function (address, dataAddress, leng
 		msg._request.dataAddress(dataAddress);
 		msg._request.numRegisters(length);
 
-		msg.requestType('readInputRegisters' + address.toString() + dataAddress.toString() + length.toString());
+		msg.requestType(origin + 'readInputRegisters' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
@@ -522,12 +522,16 @@ FunctionCode.prototype.evalOperation = function(inputData, operation) {
 	if(typeof operation === 'undefined') {
 		return inputData;
 	}
-	logger.debug('Got evalOperation on inputData- ' + inputData + ' operation ' + JSON.stringify(operation));
+	logger.trace('Got evalOperation on inputData- ' + inputData + ' operation ' + JSON.stringify(operation));
 	var template = handleBars.compile(JSON.stringify(operation));
     var info = {};
     info.value = inputData;
     var outputData = eval(JSON.parse(template(info)));
     return (typeof outputData === 'number') ? outputData.toFixed(2)/1 : outputData;
 }
+
+FunctionCode.prototype.getMessengerQueueLength = function() {
+	return this._manager.getQueueLength();
+};
 
 module.exports = FunctionCode;

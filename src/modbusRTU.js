@@ -246,7 +246,7 @@ var ModbusRTU = {
 		},
 		execute: function(resourceID, facade) {
 			if(typeof this._deviceControllers[resourceID] !== 'undefined') {
-				return this._deviceControllers[resourceID].state[facade].get();
+				return this._deviceControllers[resourceID].state[facade].get('schedulerEngine');
 			} else {
 				logger.warn('Cannot execute command as no device controller found, this should not have happened');
 				return Promise.reject();
@@ -272,6 +272,9 @@ var ModbusRTU = {
 		},
 		listSchedulerCommands: function() {
 			return this._scheduler.listRegisteredCommands();
+		},
+		getQueueLength: function() {
+			return this._fc.getMessengerQueueLength();
 		},
 		deleteRuntime: function() {
 			var p = [];

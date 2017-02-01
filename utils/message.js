@@ -16,7 +16,8 @@ var _default = {
     respLength: 0,
 	respTimeout: 4000, //default 4 second
     parsedResponse: null,
-    requestType: 'Unknown request'
+    requestType: 'Unknown request',
+    waitingForResponse: false
 };
 
 //Message encapsulating outgoing dataFrame from Host to ZW chip
@@ -40,6 +41,7 @@ var Message = function(msg) {
     this._respAddress = msg.respAddress || _default.respAddress;
 	this._respTimeout = msg.respTimeout || _default.respTimeout;
     this._parsedResponse = msg.parsedResponse || _default.parsedResponse;
+    this._waitingForResponse = msg.waitingForResponse || _default.waitingForResponse;
 
 	this._response = new DataFrame();
 	this._request = new DataFrame();
@@ -227,6 +229,16 @@ Message.prototype.parsedResponse = function(resp) {
     }
     else {
         return this._parsedResponse;
+    }
+}
+
+Message.prototype.waitingForResponse = function(flag) {
+    if (arguments.length == 1) {
+        this._waitingForResponse = flag;
+        return this;
+    }
+    else {
+        return this._waitingForResponse;
     }
 }
 

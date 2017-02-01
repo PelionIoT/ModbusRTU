@@ -12,7 +12,7 @@ var _options = {
 	stopBits: 1,
 	parity: 'none',
 	endPacketTimeout: 15
-}
+};
 
 var logger = new Logger( { moduleName: 'SerialCommInterface', color: 'magenta'} );
 
@@ -24,21 +24,21 @@ var SerialCommInterface = function(options) {
 	}
 
 	this._serialPort = null;
-	this._siodev   = options.siodev   || _options.siodev; 
+	this._siodev   = options.siodev   || _options.siodev;
 	this._baudrate = options.baudrate || _options.baudrate;
 	this._dataBits = options.dataBits || _options.dataBits;
 	this._stopBits = options.stopBits || _options.stopBits;
 	this._endPacketTimeout = options.endPacketTimeout || _options.endPacketTimeout;
 
 	this.buffers = [];
-}
+};
 
 SerialCommInterface.prototype = Object.create(EventEmitter.prototype);
 
 SerialCommInterface.prototype.start = function() {
 	var self = this;
 
-	//Modbus do not have delimiter, so wait for 15 ms (Default) and then forward 
+	//Modbus do not have delimiter, so wait for 15 ms (Default) and then forward
 	var onData = _.debounce(function () {
         var buffer = Buffer.concat(self.buffers);
         self.emit('data', buffer);

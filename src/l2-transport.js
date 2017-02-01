@@ -20,7 +20,7 @@ var Transport = function(options) {
 
 	//constants
 	this._maxTransportRetransmit = options.maxTransportRetries || MAX_TRANSPORT_RETRANSMIT;
-	this._ackWaitTimeperiod = options.responseTimeout || ACK_TIMEOUT; //msecond, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
+	this._ackWaitTimeperiod = options.requestAckTimeout || ACK_TIMEOUT; //msecond, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
 	this._serialInterfaceOptions = options.serialInterfaceOptions;
 
 	this._serialComm = null;
@@ -33,7 +33,7 @@ var Transport = function(options) {
 	this._resendCount = 0;
 	this._inProgress = false;
 
-	this._waitBeforeTransmit = 100; //100ms wait before retransmit, giving enough time for the response to finish as it causes CAN frame
+	this._waitBeforeTransmit = 50; //100ms wait before retransmit, giving enough time for the response to finish as it causes CAN frame
 }
 
 Transport.prototype.start = function(options) {
@@ -76,8 +76,13 @@ Transport.prototype.handleIncomingData = function(buffer) {
 
 Transport.prototype.assignIncomingDataFrameCB = function(cb) {
 	if(typeof cb === 'function')
-		this._incomingDataFrameCB = cb
-}
+		this._incomingDataFrameCB = cb;
+};
+
+Transport.prototype.assignProgressReportCB = function(cb) {
+    if(typeof cb === 'function')
+        this._inProgressCB = cb;
+};
 
 /* Data frame delivery timeout
 A host or Z-Wave chip MUST wait for an ACK frame after transmitting a Data frame.
@@ -95,17 +100,19 @@ Transport.prototype.startSendSequence = function() {
 	    	var buffer = this._txQueue[0]._request.toBuffer();
 	    	logger.info('Msg' + this._txQueue[0]._msgId + ' ' + this._txQueue[0]._description + ' start send sequence ' + buffer.toString('hex'));
 
+            if(this._inProgress) this._inProgress(this._txQueue[0]._msgId);
+
 	        this.sendDataFrame(buffer);
 	        this._inProgress = true;
 
 	        this._ackTimeout = setTimeout(function() {
-	        	logger.warn('Did not receive response for tx msg, timing out');
+	        	logger.warn('Did not receive response for tx msg ' + self._txQueue[0]._msgId + ', timing out');
 	            self.handleNakFrame();
 	        }, this._ackWaitTimeperiod);
 	    }
 	}
     else {
-    	logger.info('Msg' + this._txQueue[this._txQueue.length - 1]._msgId + ' ' + this._txQueue[this._txQueue.length - 1]._description + ' send deferred');
+    	logger.debug('Msg' + this._txQueue[this._txQueue.length - 1]._msgId + ' ' + this._txQueue[this._txQueue.length - 1]._description + ' send deferred');
     }
 };
 
@@ -118,14 +125,13 @@ Transport.prototype.completeSendSequence = function(e) {
         // logger.debug('Msg' + msg._msgId + ' ' + msg._description + ' complete send sequence');
         logger.trace('Msg' + msg._msgId + ' complete send sequence ' + JSON.stringify(msg));
 
-        logger.debug('Proceed to next msg send');
+        logger.trace('Proceed to next msg send');
         // this will cause it to continue to send queued commands
         clearTimeout(this._ackTimeout);
         delete this._ackTimeout;
 
         try {
-            logger.debug('Msg' + msg._msgId + ' call message callback, error- ' + e);
-            msg._reqCB(msg._msgId, e);
+            if(msg._reqCB) msg._reqCB(msg._msgId, e);
         }
         catch(err) {
             // log error, doesn't really matter to this layer
@@ -195,7 +201,7 @@ Transport.prototype.handleNakFrame = function() {
 
 // buffer should exclude first SOF byte
 Transport.prototype.handleDataFrame = function(buffer) {
-	logger.info('Incoming dataframe- '+ buffer.toString('hex'));
+	logger.debug('Incoming dataframe- '+ buffer.toString('hex'));
 
 	var incomingData = new DataFrame(buffer);
 	// logger.info('Incoming frame ' + JSON.stringify(incomingData));

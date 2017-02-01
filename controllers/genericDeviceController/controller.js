@@ -3,7 +3,7 @@ var logger = null;
 
 var {{controllerClassName}} = {
     start: function(options) {
-        logger = new Logger( {moduleName: '{{controllerClassName}}', color: 'white'} );
+        logger = new Logger( {moduleName: '{{controllerClassName}}', color: 'greenBG'} );
         logger.info('starting controller');
         var self = this;
 
@@ -35,7 +35,7 @@ var {{controllerClassName}} = {
                     self._facadeData[facade] = self._interfaces[intf];
 
                     self._scheduler.on(self._id + facade, function(state, data) {
-                        logger.info('Polling data- ' + data + ' for state ' + state);
+                        logger.debug('State ' + state + ' got data ' + data);
                         if(typeof self._facadeState[state] === 'undefined') {
                             self._facadeState[state] = null;
                         }
@@ -48,6 +48,8 @@ var {{controllerClassName}} = {
                                     && (Math.abs(self._facadeState[state] - data) >= self._facadeData[facade].eventThreshold))
                             ) {
                                 self._facadeState[state] = data;
+                                data = self._fc.evalOperation(data, self._facadeData[state].outgoingOperation);
+                                logger.info('Emitting event for state ' + state + ' data ' + data);
                                 self.emit(state, data);
                             }
                         }
@@ -90,7 +92,7 @@ var {{controllerClassName}} = {
                 self._scheduler.registerCommand(self._id, self._registers.pollingInterval, 'register');
 
                 self._scheduler.on(self._id + 'register', function(registerState, registerData) {
-                    logger.debug('Polling register data- ' + registerData);
+                    logger.debug('Register data- ' + registerData);
 
                     Object.keys(self._interfaces).forEach(function(intf) {
                         var state = Object.keys(self._devjsInterfaces[intf]['0.0.1'].state)[0];
@@ -106,7 +108,7 @@ var {{controllerClassName}} = {
                                 logger.error('Failed to get facade data for ' + state + ' error ' + e);
                             }
 
-                            logger.info('Facade ' + state + ' got data ' + data);
+                            logger.debug('State ' + state + ' got data ' + data);
                             if(self._facadeState[state] != data) {
                                 if( (typeof data === 'string') ||
                                     (typeof data === 'object') ||
@@ -114,8 +116,9 @@ var {{controllerClassName}} = {
                                     (typeof data !== 'object' && typeof self._interfaces[intf].eventThreshold !== 'undefined'
                                         && (Math.abs(self._facadeState[state] - data) >= self._interfaces[intf].eventThreshold))
                                 ) {
-                                    logger.debug('Emitting event for state ' + state + ' data ' + data);
                                     self._facadeState[state] = data;
+                                    data = self._fc.evalOperation(data, self._interfaces[intf].outgoingOperation);
+                                    logger.info('Emitting event for state ' + state + ' data ' + data);
                                     self.emit(state, data);
                                 }
                             }
@@ -137,7 +140,7 @@ var {{controllerClassName}} = {
     },
     state: {
         power: {
-            get: function() {
+            get: function(origin) {
                 var self = this;
                 var ret;
                 return new Promise(function(resolve, reject) {
@@ -151,6 +154,7 @@ var {{controllerClassName}} = {
                         self._slaveAddress,
                         self._interfaces['Facades/Switchable'].dataAddress,
                         self._interfaces['Facades/Switchable'].range,
+                        origin,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
@@ -182,7 +186,7 @@ var {{controllerClassName}} = {
             }
         },
         register: {
-            get: function() {
+            get: function(origin) {
                 var self = this;
                 var ret;
                 return new Promise(function(resolve, reject) {
@@ -196,12 +200,13 @@ var {{controllerClassName}} = {
                         self._slaveAddress,
                         self._interfaces['Facades/Register'].dataAddress,
                         self._interfaces['Facades/Register'].range,
+                        origin,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
                         }
                         ret = data._response._data;
-                        logger.info('Got register ' + ret);
+                        logger.trace('Got register ' + ret);
                         return resolve(ret);
                     })
                 })
@@ -211,7 +216,7 @@ var {{controllerClassName}} = {
             }
         },
         temperature: {
-            get: function() {
+            get: function(origin) {
                 var self = this;
                 var ret;
                 return new Promise(function(resolve, reject) {
@@ -225,6 +230,7 @@ var {{controllerClassName}} = {
                         self._slaveAddress,
                         self._interfaces['Facades/HasTemperature'].dataAddress,
                         self._interfaces['Facades/HasTemperature'].range,
+                        origin,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
@@ -240,7 +246,7 @@ var {{controllerClassName}} = {
             }
         },
         luminance: {
-            get: function() {
+            get: function(origin) {
                 var self = this;
                 var ret;
                 return new Promise(function(resolve, reject) {
@@ -255,6 +261,7 @@ var {{controllerClassName}} = {
                         self._slaveAddress,
                         self._interfaces['Facades/HasLuminance'].dataAddress,
                         self._interfaces['Facades/HasLuminance'].range,
+                        origin,
                         function(err, data) {
                         if(err) {
                             return reject('Failed with error ' + err)
