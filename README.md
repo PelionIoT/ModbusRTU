@@ -96,6 +96,45 @@ dev$.selectByID('ModbusRTU').call('start', {
 });
 ```
 
-References:
+# References:
 
 1. Facades - You can find the built-in facades with devicejs here https://github.com/WigWagCo/devicejs-core-modules/tree/development/core-interfaces/facades. To create your own facade follow how to start device controller documentation. 
+
+# Troubleshooting:
+
+Useful commands to get more info about the driver, registered resources, running device controllers etc. Execute the following commands on deviceJS shell.
+
+##### 1. List: Get all the resouceIDs registered by ModbusRTU driver 
+```
+dev$.selectByID('ModbusRTU').call('listResources').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+##### 2. Get Device Metadata/Definition: Get device definition/metadata for resourceID. Get one of the resourceID from the result of List command and replace it with the string 'resourceIDinsinglequotes'
+```
+dev$.selectByID('ModbusRTU').call('getMetadata', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+##### 3. State: Get the state of the device controllers
+```
+dev$.selectByID('ModbusRTU').call('listResourceStates').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+##### 4. Stop: Stop running device controller. Note: If the modbus driver restarts then this device controller will be started. To prevent that or permanently disable or delete a device follow disable or delete command respectively.
+```
+dev$.selectByID('ModbusRTU').call('stop', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+##### 5. DeleteAll: Reset the modbus driver. This command will delete the running and stored device controllers and wipe the memory to start afresh. 
+```
+dev$.selectByID('ModbusRTU').call('deleteAll').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+##### 6. LogLevel: To reduce or increase the logging from Modbus driver. Available-  error- 0, warn- 1, info- 2, debug- 3, trace- 4
+```
+dev$.selectByID('ModbusRTU').call('logLevel', 3).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+```
+
+# Terminology
+1. Device Definition/Metadata- This is the JSON object which specifies the details to start device controller such as name, interfaces, slave address, polling interval etc.
+2. Device controller- Controller which lets to control or get state information of a particular endpoint connected with Modbus.
+3. ResourceID: Identifier with which device controller was started. It is a unique string used to registered a device controller with deviceJS. You will this as- dev$.selectByID('resourceID').get('power') or dev$.selectByID('resourceID').set('power')
