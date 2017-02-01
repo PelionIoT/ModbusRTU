@@ -111,12 +111,14 @@ FunctionCode.prototype.readCoils = function (address, dataAddress, length, cb) {
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (01) Read Coils from data address ' + dataAddress.toString(16) + ' length ' + length + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (01) Read Coils from data address 0x' + dataAddress.toString(16) + ' length ' + length + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.READ_COIL_STATUS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.numCoils(length);
+
+		msg.requestType('readCoils' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
@@ -163,12 +165,14 @@ FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, leng
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (02) Read Discrete Inputs from data address ' + dataAddress.toString(16) + ' length ' + length + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (02) Read Discrete Inputs from data address 0x' + dataAddress.toString(16) + ' length ' + length + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.READ_INPUT_STATUS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.numCoils(length);
+
+		msg.requestType('readDiscreteInputs' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + parseInt((length - 1) / 8 + 1) + 2);
 		msg.respAddress(address);
@@ -214,12 +218,14 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (03) Reading Holding Registers from data address ' + dataAddress.toString(16) + ' length ' + length + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (03) Reading Holding Registers from data address 0x' + dataAddress.toString(16) + ' length ' + length + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.READ_HOLDING_REGISTERS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.numRegisters(length);
+
+		msg.requestType('readHoldingRegisters' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
@@ -266,12 +272,14 @@ FunctionCode.prototype.readInputRegisters = function (address, dataAddress, leng
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (04) Read Input Registers from data address ' + dataAddress.toString(16) + ' length ' + length + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (04) Read Input Registers from data address 0x' + dataAddress.toString(16) + ' length ' + length + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.READ_INPUT_REGISTERS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.numRegisters(length);
+
+		msg.requestType('readInputRegisters' + address.toString() + dataAddress.toString() + length.toString());
 
 		msg.respLength(3 + 2 * length + 2);
 		msg.respAddress(address);
@@ -318,7 +326,7 @@ FunctionCode.prototype.writeCoil = function (address, dataAddress, state, cb) {
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (05) Force Single Coil from data address ' + dataAddress.toString(16) + ' state ' + state + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (05) Force Single Coil from data address 0x' + dataAddress.toString(16) + ' state ' + state + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.FORCE_SINGLE_COIL);
@@ -326,8 +334,10 @@ FunctionCode.prototype.writeCoil = function (address, dataAddress, state, cb) {
 		if(state) {
 			msg._request.state(0xff00);
 		} else {
-			msg._request.state(0x0000)
+			msg._request.state(0x0000);
 		}
+
+		msg.requestType('writeCoil' + address.toString() + dataAddress.toString() + state.toString());
 
 		msg.respLength(8);
 		msg.respAddress(address);
@@ -374,12 +384,14 @@ FunctionCode.prototype.writeRegister = function (address, dataAddress, value, cb
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (06) Preset Single Register from data address ' + dataAddress.toString(16) + ' value ' + value + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (06) Preset Single Register from data address 0x' + dataAddress.toString(16) + ' value ' + value + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.PRESET_SINGLE_REGISTER);
 		msg._request.dataAddress(dataAddress);
 		msg._request.value(value);
+
+		msg.requestType('writeRegister' + address.toString() + dataAddress.toString() + value.toString());
 
 		msg.respLength(8);
 		msg.respAddress(address);
@@ -426,12 +438,14 @@ FunctionCode.prototype.writeCoils = function (address, dataAddress, array, cb) {
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (15) Force Multiple Coils from data address ' + dataAddress.toString(16) + ' array ' + array + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (15) Force Multiple Coils from data address 0x0x' + dataAddress.toString(16) + ' array ' + array + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.FORCE_MULTIPLE_COILS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.coilData(array);
+
+		msg.requestType('writeCoils' + address.toString() + dataAddress.toString() + array.toString());
 
 		msg.respLength(8);
 		msg.respAddress(address);
@@ -478,12 +492,14 @@ FunctionCode.prototype.writeRegisters = function (address, dataAddress, array, c
 	return new Promise(function(resolve, reject) {
 		promise = {resolve: resolve, reject: reject};
 		msg = new Message();
-		msg.description('{{SlaveAddress- ' + address + ', (16) Preset Multiple Registers from data address ' + dataAddress.toString(16) + ' array ' + array + '}}');
+		msg.description('{{SlaveAddress- ' + address + ', (16) Preset Multiple Registers from data address 0x' + dataAddress.toString(16) + ' array ' + array + '}}');
 		msg.promise(promise);
 		msg._request.slaveAddress(address);
 		msg._request.functionCode(DEFINES.FUNCTION_CODE.PRESET_MULTIPLE_REGISTERS);
 		msg._request.dataAddress(dataAddress);
 		msg._request.coilData(array);
+
+		msg.requestType('writeRegisters' + address.toString() + dataAddress.toString() + array.toString());
 
 		msg.respLength(8);
 		msg.respAddress(address);

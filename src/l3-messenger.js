@@ -50,6 +50,14 @@ Messenger.prototype.getNextMsgId = function() {
 
 Messenger.prototype.push = function(msg, cb) {
 	var self = this;
+
+	//Check if the similar msg is in the queue, if it is then dequeue that and add this to the back of the queue
+	var found = self._queue.find(function(element) { return (element.requestType === msg.requestType); });
+	if(found) {
+		logger.warn('Found same request type queued- ' + msg.requestType + ', dequeuing old message ' + found._msgId);
+		self.callResponseCB(found, new Error('Request cancelled, found duplicate!'));
+	}
+
 	if(typeof cb === 'function') {
 		msg.respCB(cb);
 		msg.respTimeout(this._defaultResponseTimeout);
@@ -136,8 +144,8 @@ Messenger.prototype.removeMsg = function(msg) {
 Messenger.prototype.callResponseCB = function(msg, err) {
 	//check if the callback is assigned and remove it from the queue
 	logger.debug('Msg' + msg._msgId + ' calling response callback');
-	clearTimeout(msg._respTimer);
-	msg._respCB(err, msg);
+	if(msg._respTimer) clearTimeout(msg._respTimer);
+	if(msg._respCB && typeof msg._respCB === 'function') msg._respCB(err, msg);
 	this.removeMsg(msg);
 }
 
@@ -152,7 +160,7 @@ Messenger.prototype.handleResponse = function(frame) {
 		var element = this._queue[i];
 		logger.debug('element slave address- '+ element._request.slaveAddress() + ' msgId- ' + element._msgId);
 		//Filter message based on slave address and function code
-		if(element._request.slaveAddress() == frame._slaveAddr && 
+		if(element._request.slaveAddress() == frame._slaveAddr &&
 			( (element._request.functionCode() == frame._funcCode) || (element._request.functionCode() == 0x80 | frame._funcCode) ) ) {
 			msg = element;
 			logger.trace('returing msgId- ' + msg._msgId);
@@ -161,7 +169,7 @@ Messenger.prototype.handleResponse = function(frame) {
 	}
 
 	if(!!msg) {
-		logger.debug('Msg' + msg._msgId + ' got response ' + JSON.stringify(frame));	
+		logger.debug('Msg' + msg._msgId + ' got response ' + JSON.stringify(frame));
 		if(frame._length == 5 && frame._funcCode == (0x80 | msg.respCode())) {
 			return this.callResponseCB(msg, new Error('Modbus Bad Response ' + frame.getException()))
 		}

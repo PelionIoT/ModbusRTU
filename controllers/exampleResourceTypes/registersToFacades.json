@@ -18,18 +18,30 @@
             "Facades/HasTemperature" : {//200
                 "index": 0,//Index of register data
                 "outgoingOperation": "{{value}}",
-                "unit": "Fahrenheit"
+                "unit": "Fahrenheit",
+                "info": { //User wants the ability to describe this register point
+                    "name": "Temperature",
+                    "description": "PT100 connected to AI1 on imod6 slave 2"
+                }
             },
             "Facades/HasLuminance" : {//201
                 "index": 1,//Index of register data
                 "outgoingOperation": "{{value}}", //If you want perform operation on output
-                "unit": "Lux" //Default unitless
+                "unit": "Lux", //Default unitless
+                "info": {
+                    "name": "Luminance",
+                    "description": "Connected to AI2"
+                }
             },
             "Facades/Switchable": { //203
                 "index": 3,//Index of register data
                 "outgoingOperation": "{{value}} > 100 ? 'off' : 'on'", //If you want perform operation on output
                 "eventThreshold": 10, //incase of an array, it will compare each element if any element is greater than this then an event is emitted
-                "unit": "" //Default unitless
+                "unit": "", //Default unitless
+                "info": {
+                    "name": "Input switch",
+                    "description": "Overide switch connected to AI4"
+                }
             }
         }
     }

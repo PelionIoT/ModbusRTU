@@ -10,6 +10,7 @@ var {{controllerClassName}} = {
         this._fc = options.fc;
         this._id = options.resourceID;
         this._scheduler = options.scheduler;
+        this._metadata = options.metadata;
         if(typeof options.metadata.interfaces !== 'undefined')
             this._interfaces = options.metadata.interfaces;
         if(typeof options.metadata.registers !== 'undefined')
@@ -69,6 +70,7 @@ var {{controllerClassName}} = {
                 self._interfaces[intf].outgoingOperation = self._registers.interfaces[intf].outgoingOperation;
                 self._interfaces[intf].range = 1;
                 self._interfaces[intf].readFunctionCode = self._registers.readFunctionCode;
+                self._interfaces[intf].writeFunctionCode = self._registers.writeFunctionCode;
                 self._interfaces[intf].eventThreshold = self._registers.interfaces[intf].eventThreshold;
                 self._interfaces[intf].unit = self._registers.interfaces[intf].unit;
                 self._interfaces[intf].pollingInterval = self._registers.pollingInterval;
@@ -160,7 +162,23 @@ var {{controllerClassName}} = {
                 });
             },
             set: function(value) {
-                return 'Not yet implemented';
+                var self = this;
+                value = (value === 'on') ? 1 : 0;
+                return new Promise(function(resolve, reject) {
+                    if(typeof self._interfaces['Facades/Switchable'].writeFunctionCode === 'undefined') {
+                        return reject('This facade has no write function code defined');
+                    }
+                    return self._fc.call(self._interfaces['Facades/Switchable'].writeFunctionCode)(
+                        self._slaveAddress,
+                        self._interfaces['Facades/Switchable'].dataAddress,
+                        value,
+                        function(err, data) {
+                        if(err) {
+                            return reject('Failed with error ' + err)
+                        }
+                        return resolve();
+                    });
+                });
             }
         },
         register: {
@@ -262,6 +280,21 @@ var {{controllerClassName}} = {
         },
         off: function() {
             return this.state.power.set('off');
+        },
+        info: function() {
+            return this._metadata;
+        },
+        getInfo: function() {
+            return this._metadata;
+        },
+        getMetadata: function() {
+            return this._metadata;
+        },
+        getSlaveAddress: function() {
+            return this._slaveAddress;
+        },
+        getInterfaces: function() {
+            return this._interfaces;
         }
     }
 };

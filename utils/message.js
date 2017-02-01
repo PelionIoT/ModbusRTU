@@ -15,8 +15,9 @@ var _default = {
     respCode: 0,
     respLength: 0,
 	respTimeout: 4000, //default 4 second
-    parsedResponse: null
-}
+    parsedResponse: null,
+    requestType: 'Unknown request'
+};
 
 //Message encapsulating outgoing dataFrame from Host to ZW chip
 var Message = function(msg) {
@@ -29,6 +30,7 @@ var Message = function(msg) {
 	this._retries = msg.retries || _default.retries;
 	this._retryInterval = msg.retryInterval || _default.retryInterval;
 	this._description = msg.description || _default.description;
+    this._requestType = msg.requestType || _default.requestType;
 	this._msgId = msg.msgId || _default.msgId;
 	this._seqId = msg.seqId || _default.seqId;
 	this._respRequired = msg.respRequired || _default.respRequired;
@@ -97,6 +99,17 @@ Message.prototype.description = function(descp) {
     }
     else {
         return this._description;
+    }
+}
+
+Message.prototype.requestType = function(rt) {
+    if (arguments.length == 1) {
+        if(typeof rt === 'string')
+            this._requestType = rt;
+        return this;
+    }
+    else {
+        return this._requestType;
     }
 }
 
