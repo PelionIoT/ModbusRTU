@@ -106,32 +106,32 @@ Useful commands to get more info about the driver, registered resources, running
 
 ##### 1. List: Get all the resouceIDs registered by ModbusRTU driver 
 ```
-dev$.selectByID('ModbusDriver').call('listResources').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('listResources').then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 ##### 2. Get Device Metadata/Definition: Get device definition/metadata for resourceID. Get one of the resourceID from the result of List command and replace it with the string 'resourceIDinsinglequotes'
 ```
-dev$.selectByID('ModbusDriver').call('getMetadata', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('getMetadata', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 ##### 3. State: Get the state of the device controllers
 ```
-dev$.selectByID('ModbusDriver').call('listResourceStates').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('listResourceStates').then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 ##### 4. Stop: Stop running device controller. Note: If the modbus driver restarts then this device controller will be started. To prevent that or permanently disable or delete a device follow disable or delete command respectively.
 ```
-dev$.selectByID('ModbusDriver').call('stop', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('stop', resouceIDinsinglequotes).then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 ##### 5. DeleteAll: Reset the modbus driver. This command will delete the running and stored device controllers and wipe the memory to start afresh. 
 ```
-dev$.selectByID('ModbusDriver').call('deleteAll').then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('deleteAll').then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 ##### 6. LogLevel: To reduce or increase the logging from Modbus driver. Available-  error- 0, warn- 1, info- 2, debug- 3, trace- 4
 ```
-dev$.selectByID('ModbusDriver').call('logLevel', 3).then(function(resp) { if(resp.ModbusRTU && resp.ModbusRTU.response && resp.ModbusRTU.response.result) { console.log(resp.ModbusRTU.response.result) } else { console.log('Failed: ', resp.ModbusRTU.response.error) } }) 
+dev$.selectByID('ModbusDriver').call('logLevel', 3).then(function(resp) { if(resp.ModbusDriver && resp.ModbusDriver.response && resp.ModbusDriver.response.result) { console.log(resp.ModbusDriver.response.result) } else { console.log('Failed: ', resp.ModbusDriver.response.error) } }) 
 ```
 
 # Terminology
