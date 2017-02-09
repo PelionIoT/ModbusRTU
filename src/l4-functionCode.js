@@ -530,8 +530,12 @@ FunctionCode.prototype.evalOperation = function(inputData, operation) {
     return (typeof outputData === 'number') ? outputData.toFixed(2)/1 : outputData;
 }
 
-FunctionCode.prototype.getMessengerQueueLength = function() {
+FunctionCode.prototype.getQueueLength = function() {
 	return this._manager.getQueueLength();
+};
+
+FunctionCode.prototype.flushQueue = function() {
+	return this._manager.flush();
 };
 
 module.exports = FunctionCode;

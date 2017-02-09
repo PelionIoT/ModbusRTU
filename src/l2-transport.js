@@ -7,6 +7,7 @@ var logger = new Logger( { moduleName: 'Transport', color: 'cyan'} );
 
 var MAX_TRANSPORT_RETRANSMIT = 3;
 var ACK_TIMEOUT = 300; //ms
+var THROTTLE_RATE = 100; //ms
 
 // flow control, streaming, etc on transport layer
 // this layer should send a message, handle resends and acks
@@ -33,7 +34,7 @@ var Transport = function(options) {
 	this._resendCount = 0;
 	this._inProgress = false;
 
-	this._waitBeforeTransmit = 50; //100ms wait before retransmit, giving enough time for the response to finish as it causes CAN frame
+	this._waitBeforeTransmit = options.throttleRate || THROTTLE_RATE; //100ms wait before retransmit, giving enough time for the response to finish as it causes CAN frame
 }
 
 Transport.prototype.start = function(options) {
@@ -84,14 +85,24 @@ Transport.prototype.assignProgressReportCB = function(cb) {
         this._inProgressCB = cb;
 };
 
-/* Data frame delivery timeout
-A host or Z-Wave chip MUST wait for an ACK frame after transmitting a Data frame.
-The receiver may be waiting for up to 1500ms for the remains of a corrupted frame
-Therefore, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
-The loss of a Data frame MUST be treated as the reception of a NAK frame
-The transmitter MAY compensate for the 1600ms already elapsed when calculating the retransmission
-waiting period.
-*/
+Transport.prototype.dequeueRequest = function(msgId) {
+    var msg = this._txQueue.find(function(element) { return (element._msgId === msgId); });
+    if(!msg.waitingForResponse()) {
+        var index = this._txQueue.indexOf(msg);
+        if(index) this._txQueue.splice(index, 1);
+    }
+    return;
+};
+
+Transport.prototype.queueLength = function() {
+    return this._txQueue.length;
+};
+
+Transport.prototype.flush = function() {
+    this._txQueue.splice(1, this._txQueue.length);
+    return;
+};
+
 Transport.prototype.startSendSequence = function() {
     var self = this;
 
@@ -116,7 +127,7 @@ Transport.prototype.startSendSequence = function() {
     }
 };
 
-Transport.prototype.completeSendSequence = function(e) {
+Transport.prototype.completeSendSequence = function(e, incomingData) {
 	var self = this;
     var msg = this._txQueue.shift(); //FIFO
 
@@ -132,6 +143,9 @@ Transport.prototype.completeSendSequence = function(e) {
 
         try {
             if(msg._reqCB) msg._reqCB(msg._msgId, e);
+            if(typeof this._incomingDataFrameCB === 'function') {
+                this._incomingDataFrameCB(msg, incomingData);
+            }
         }
         catch(err) {
             // log error, doesn't really matter to this layer
@@ -148,22 +162,6 @@ Transport.prototype.completeSendSequence = function(e) {
     }, self._waitBeforeTransmit);
 };
 
-//Retransmission
-/*
-A transmitter may time out waiting for an ACK frame after transmitting a Data frame or it may receive a
-NAK or a CAN frame. In either case, the transmitter SHOULD retransmit the Data frame.
-A waiting period MUST be applied before the retransmission.
-The waiting period MUST be calculated per the following formula:
-T waiting = 100ms + n*1000ms
-where n is incremented at each retransmission.
-n=0 is used for the first waiting period.
-A host or Z-Wave chip MUST NOT carry out more than 3 retransmissions.
-
-It should be noted that a host
-MAY choose to do a hard reset of the Z-Wave module if it is not able to do a successful frame delivery
-after 3 retransmissions. It is also recommended to flush/reopen the serial port after the 3
-retransmissions.
-*/
 Transport.prototype.retransmit = function() {
     var self = this;
 
@@ -189,9 +187,9 @@ Transport.prototype.retransmit = function() {
     }
 };
 
-Transport.prototype.handleAckFrame = function() {
+Transport.prototype.handleAckFrame = function(incomingData) {
     // ready to send next data frame if necessary
-    this.completeSendSequence();
+    this.completeSendSequence(null, incomingData);
 };
 
 Transport.prototype.handleNakFrame = function() {
@@ -206,10 +204,7 @@ Transport.prototype.handleDataFrame = function(buffer) {
 	var incomingData = new DataFrame(buffer);
 	// logger.info('Incoming frame ' + JSON.stringify(incomingData));
 	if(incomingData.isValidLength() && incomingData.isValidChecksum()) {
-		this.handleAckFrame();
-		if(typeof this._incomingDataFrameCB === 'function') {
-			this._incomingDataFrameCB(incomingData);
-		}
+		this.handleAckFrame(incomingData);
 	} else {
 		if(!incomingData.isValidChecksum()) {
 			this.onCRCError();
@@ -224,12 +219,6 @@ Transport.prototype.handleInvalidMessageType = function(messageType) {
     // just log error for now
     logger.error('RX ----- Invalid Frame Type ' + messageType);
 };
-
-/*Persistent CRC error
-If a host application detects an invalid checksum three times in a row when receiving data frames,
-the host application SHOULD invoke a hard reset of the device. If a hard reset line is not available,
-a soft reset indication SHOULD be issued for the device.
-*/
 Transport.prototype.onCRCError = function() {
     this._consecutiveCRCErrors += 1;
 
@@ -243,12 +232,6 @@ Transport.prototype.onCRCError = function() {
 };
 
 Transport.prototype.onUnresponsiveError = function() {
-    // A host or Z-Wave chip MUST NOT carry out more than 3 retransmissions. It should be noted that a host
-    // MAY choose to do a hard reset of the Z-Wave module if it is not able to do a successful frame delivery
-    // after 3 retransmissions. It is also recommended to flush/reopen the serial port after the 3
-    // retransmissions.
-
-    // logger.error('onUnresponsiveError')
     this._serialComm.flush();
     this.completeSendSequence(new Error('Did not receive ack'));
 };

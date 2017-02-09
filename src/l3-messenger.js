@@ -23,8 +23,8 @@ Messenger.prototype = Object.create(EventEmitter.prototype);
 Messenger.prototype.start = function(options) {
 	var self = this;
 
-	function responseCB(frame) {
-		self.handleResponse(frame);
+	function responseCB(msg, frame) {
+		self.handleResponse(msg, frame);
 	}
 
 	function progressCB(msgId) {
@@ -60,6 +60,7 @@ Messenger.prototype.push = function(msg, cb) {
 	var found = self._queue.find(function(element) { return ((element._requestType === msg._requestType) && (!element.waitingForResponse())); });
 	if(found) {
 		logger.warn('Found same request type queued- ' + found._requestType + ', dequeuing old message ' + found._msgId);
+		self._transport.dequeueRequest(found._msgId);
 		self.callResponseCB(found, new Error('Request cancelled, found duplicate!'));
 	}
 
@@ -101,14 +102,11 @@ Messenger.prototype.send = function(msg) {
 
 Messenger.prototype.inProgress = function(msgId) {
 	var self = this;
-	var index = 0;
-	for(var i = 0; i < self._queue.length; i++) {
-		if(self._queue[i]._msgId == msgId) {
-			index = i;
-			break;
-		}
+	var msg = self._queue.find(function(element) { return (element._msgId === msgId); });
+	var index = this._queue.indexOf(msg);
+	if(index) {
+		this._queue[index].waitingForResponse(true);
 	}
-	this._queue[index].waitingForResponse(true);
 };
 
 //Callback for frame sent to ZW from host
@@ -174,23 +172,23 @@ Messenger.prototype.callResponseCB = function(msg, err) {
 };
 
 //FIFO so we look for the first msg which matches the command
-Messenger.prototype.handleResponse = function(frame) {
+Messenger.prototype.handleResponse = function(msg, frame) {
 	if(!(frame instanceof DataFrame)) {
         throw new TypeError('incoming response should be of DataFrame type');
 	}
 
-	var msg = false;
-	for(var i = 0; i < this._queue.length; i++) {
-		var element = this._queue[i];
-		logger.debug('Element slave address- '+ element._request.slaveAddress() + ' msgId- ' + element._msgId);
-		//Filter message based on slave address and function code
-		if(element._request.slaveAddress() == frame._slaveAddr &&
-			( (element._request.functionCode() == frame._funcCode) || (element._request.functionCode() == 0x80 | frame._funcCode) ) ) {
-			msg = element;
-			logger.trace('returing msgId- ' + msg._msgId);
-			break;
-		}
-	}
+	// var msg = false;
+	// for(var i = 0; i < this._queue.length; i++) {
+	// 	var element = this._queue[i];
+	// 	logger.debug('Element slave address- '+ element._request.slaveAddress() + ' msgId- ' + element._msgId);
+	// 	//Filter message based on slave address and function code
+	// 	if(element._request.slaveAddress() == frame._slaveAddr &&
+	// 		( (element._request.functionCode() == frame._funcCode) || (element._request.functionCode() == 0x80 | frame._funcCode) ) ) {
+	// 		msg = element;
+	// 		logger.trace('returing msgId- ' + msg._msgId);
+	// 		break;
+	// 	}
+	// }
 
 	if(!!msg) {
 		logger.info('Msg' + msg._msgId + ' got response ' + frame.getOriginalBuffer().toString('hex'));
@@ -219,12 +217,18 @@ Messenger.prototype.assignEventListener = function(f) {
 };
 
 //Utils for testing
+Messenger.prototype.flush = function() {
+	this._queue.splice(1, this._queue.length);
+	this._transport.flush();
+	return;
+};
+
 Messenger.prototype.getQueue = function() {
 	return this._queue;
 };
 
 Messenger.prototype.getQueueLength = function() {
-	return this._queue.length;
+	return {transport: this._transport.queueLength(), messenger: this._queue.length};
 };
 
 Messenger.prototype.getCurrentSeqId = function() {

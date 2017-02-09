@@ -5,14 +5,16 @@ var {{controllerClassName}} = {
     start: function(options) {
         logger = new Logger( {moduleName: '{{controllerClassName}}', color: 'greenBG'} );
         logger.info('starting controller');
+
         var self = this;
 
         this._fc = options.fc;
         this._id = options.resourceID;
         this._scheduler = options.scheduler;
         this._metadata = options.metadata;
-        if(typeof options.metadata.interfaces !== 'undefined')
+        if(typeof options.metadata.interfaces !== 'undefined') {
             this._interfaces = options.metadata.interfaces;
+        }
         if(typeof options.metadata.registers !== 'undefined')
             this._registers = options.metadata.registers;
         this._slaveAddress = options.metadata.slaveAddress;
@@ -30,7 +32,13 @@ var {{controllerClassName}} = {
                 var facade = Object.keys(self._devjsInterfaces[intf]['0.0.1'].state)[0];
                 if(typeof self._interfaces[intf].pollingInterval !== 'undefined') {
                     logger.info('Registering facade ' + facade + ' with scheduler at polling interval ' + self._interfaces[intf].pollingInterval + 'ms');
-                    self._scheduler.registerCommand(self._id, self._interfaces[intf].pollingInterval, facade);
+                    self._scheduler.registerCommand(
+                                self._id, 
+                                self._interfaces[intf].pollingInterval, 
+                                facade,
+                                self._slaveAddress,
+                                self._interfaces[intf].dataAddress,
+                                self._interfaces[intf].readFunctionCode);
 
                     self._facadeData[facade] = self._interfaces[intf];
 
@@ -205,14 +213,33 @@ var {{controllerClassName}} = {
                         if(err) {
                             return reject('Failed with error ' + err)
                         }
-                        ret = data._response._data;
-                        logger.trace('Got register ' + ret);
+                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Register'].outgoingOperation);
+                        logger.trace('Got register state ' + ret);
                         return resolve(ret);
+
+                        // ret = data._response._data;
+                        // logger.trace('Got register ' + ret);
+                        // return resolve(ret);
                     })
                 })
             },
             set: function(value) {
-                return 'Not yet implemented';
+                var self = this;
+                return new Promise(function(resolve, reject) {
+                    if(typeof self._interfaces['Facades/Register'].writeFunctionCode === 'undefined') {
+                        return reject('This facade has no write function code defined');
+                    }
+                    return self._fc.call(self._interfaces['Facades/Register'].writeFunctionCode)(
+                        self._slaveAddress,
+                        self._interfaces['Facades/Register'].dataAddress,
+                        value,
+                        function(err, data) {
+                        if(err) {
+                            return reject('Failed with error ' + err)
+                        }
+                        return resolve();
+                    });
+                });
             }
         },
         temperature: {
@@ -278,8 +305,56 @@ var {{controllerClassName}} = {
         }
     },
     getState: function() {
+        var s = {};
+        var p = [];
+        var self = this;
+
+        Object.keys(self.state).forEach(function(interface) {
+            p.push(new Promise(function(resolve, reject) {
+                    self.state[interface].get(interface).then(function(value) {
+                    if(value != null) {
+                        s[interface] = value;
+                    }
+                    resolve();
+                }).catch(function(e) {
+                    if(!/This facade is not supported by controller/.test(e)) {
+                        logger.error('Failed to get state- ' + interface + ', error- ' + e);
+                    }
+                    resolve();
+                })
+            }));
+        });
+
+        return Promise.all(p).then(function() {
+            return s;
+        });
     },
-    setState: function(devState) {
+    setState: function(value) {
+        var self = this;
+
+        var p = [];
+
+        return new Promise(function(resolve, reject) {
+
+            self.getState().then(function(obj) {
+                Object.keys(value).forEach(function(key) {
+                    if(typeof obj[key] != 'undefined') {
+                        if(JSON.stringify(obj[key]) != JSON.stringify(value[key])) {
+                            p.push(self.state[key].set(value[key]));
+                        }
+                    } else {
+                        logger.error('This should not have happened, got key which is not returned by getstate- ' + key);
+                    }
+                });
+
+                Promise.all(p).then(function() {
+                    resolve();
+                }, function(err) {
+                    reject(err);
+                });
+            });
+
+        })
     },
     commands: {
         on: function() {
@@ -287,6 +362,9 @@ var {{controllerClassName}} = {
         },
         off: function() {
             return this.state.power.set('off');
+        },
+        metadata: function() {
+            return JSON.stringify(this._metadata);
         },
         info: function() {
             return this._metadata;

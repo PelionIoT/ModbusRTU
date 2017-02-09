@@ -1,0 +1,105 @@
+{
+    "name": "CircleK_IMod6_Slave2",
+    "resourceIdPosfix": "CKMod6S2",
+    "deviceGenre": "registers",
+    "resourceType": "Core/Devices/ModbusRTU",
+    "version": "0.0.1",
+    "slaveAddress": 2,
+    "enable": true,
+    "overwrite": true,
+    "registerRuns": [
+        {
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 10000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "2": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function3",
+                    "description": "Output DO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function4",
+                    "description": "Output DO4"
+                }
+            }
+        },
+        {
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function1",
+                    "description": "Output DO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function2",
+                    "description": "Output DO2"
+                }
+            }
+        },
+        {
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 20000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "6": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function7",
+                    "description": "Output DO7"
+                }
+            }
+        },
+        {
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 15000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "7": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function8",
+                    "description": "Output DO8"
+                }
+            }
+        },
+        {
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 30000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "4": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function5",
+                    "description": "Output DO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function6",
+                    "description": "Output DO6"
+                }
+            }
+        }
+    ]
+}

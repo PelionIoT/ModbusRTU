@@ -11,19 +11,28 @@ var logger = new Logger( {moduleName: 'Driver', color: 'bgGreen'} );
 configurator.configure("ModbusRTU",__dirname).then(function(data) {
 	var options = data;
 
+	var scheduler;
+	var modbus;
 	//Set loglevel
 	global.GLOBAL.ModbusLogLevel = options.logLevel || 2;
 
 	logger.info('Starting with options ' + JSON.stringify(options));
 
+	options.serialInterfaceOptions.onPortClose = function() {
+		modbus._state = false;
+		if(scheduler) {
+			scheduler.stop();
+		}
+	};
+
 	function startModbus() {
 		var functionCode = new FunctionCode();
 		functionCode.start(options).then(function() {
 
-			var modbus = new ModbusRTU(options.modbusResourceId || "ModbusRTU1");
-			var scheduler = new Scheduler(options);
+			modbus = new ModbusRTU(options.modbusResourceId || "ModbusDriver");
+			scheduler = new Scheduler(options);
 
-			scheduler.start(modbus);
+			scheduler.start(modbus, functionCode);
 			modbus.start({
 				fc: functionCode,
 				resourceTypesDirectory: options.supportedResourceTypesDirectory || "controllers/supportedResourceTypes",
@@ -36,6 +45,7 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 				//Instantiate available resource types
 				modbus.commands.startAll().then(function() {
 					logger.info('Started device controller on all supported resource types');
+					modbus._state = true;
 				}, function(err) {
 					logger.error('Failed to start device controllers ' + JSON.stringify(err) + err);
 				});

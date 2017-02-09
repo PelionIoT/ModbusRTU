@@ -29,6 +29,7 @@ var SerialCommInterface = function(options) {
 	this._dataBits = options.dataBits || _options.dataBits;
 	this._stopBits = options.stopBits || _options.stopBits;
 	this._endPacketTimeout = options.endPacketTimeout || _options.endPacketTimeout;
+	this._onPortClose = options.onPortClose;
 
 	this.buffers = [];
 };
@@ -70,7 +71,8 @@ SerialCommInterface.prototype.start = function() {
 
 			self._serialPort.on('close', function() {
 				logger.info('Port closed successful');
-				delete self._serialPort;
+				// delete self._serialPort;
+				if(self._onPortClose && typeof self._onPortClose === 'function') self._onPortClose();
 				self.emit('close');
 			}); //Callback is called with no arguments when the port is closed. In the event of an error, an error event will be triggered
 

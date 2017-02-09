@@ -20,7 +20,7 @@ var FrameLayout = {
                                                         reg = reg >> 1;
                                                     }
                                                 }
-                                                return contents; 
+                                                return contents;
                                                                                                 },
     GET_REGISTER        : function( hdr, len ) {  var contents = [];
 
@@ -44,7 +44,7 @@ var FrameLayout = {
     SET_STATE           : function( hdr, v ) { return hdr.writeUInt16BE(v, 4);                      },
     SET_VALUE           : function( hdr, v ) { return hdr.writeUInt16BE(v, 4);                      },
     SET_DATA_BYTES      : function( hdr, v ) { return hdr.writeUInt8(v, 6);                         },
-    SET_COIL            : function( hdr, v, len ) { 
+    SET_COIL            : function( hdr, v, len ) {
                                                 // clear the data bytes before writing bits data
                                                 for (var i = 0; i < len; i++) {
                                                     hdr.writeUInt8(0, 7 + i);
@@ -56,13 +56,13 @@ var FrameLayout = {
                                                     if (v[i]) {
                                                         hdr.writeBit(1, i, 7);
                                                     }
-                                                }                                                   
+                                                }
                                                                                                     },
     SET_REGISTER        : function( hdr, v ) {
                                             for (var i = 0; i < v.length; i++) {
                                                 hdr.writeUInt16BE(v[i], 7 + 2 * i);
                                             }
-                                                                                                    },                                                                                              
+                                                                                                    },
     SET_CHECKSUM        : function( hdr, v ) { return hdr.writeUInt16LE(v, hdr.length - 2);         }
 };
 

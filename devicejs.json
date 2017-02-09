@@ -21,6 +21,7 @@
         "handlebars": "4.0.5",
         "colors": "1.1.2",
         "underscore": "*",
+        "jsonschema": "1.0.1",
         "lodash": "4.17.4"
     },
     "devDependencies": { },
