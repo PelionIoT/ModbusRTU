@@ -211,24 +211,19 @@ Scheduler.prototype.execute = function(run) {
 	var self = this;
 	if(typeof run.dataAddress !== 'undefined' && typeof run.readFunctionCode !== 'undefined') {
 		logger.debug('Executing run ' + JSON.stringify(run));
-		self._fc.call(run.readFunctionCode)(
+		self._fc.call(run.readFunctionCode,
             run.slaveAddress,
             run.dataAddress,
             run.range,
-            'scheduler',
-            function(err, data) {
-	            if(err) {
-	                return reject('Failed with error ' + err);
-	            }
+            'scheduler').then(function(data) {
 	            logger.trace('Got result for run ' + JSON.stringify(run));
 	            logger.debug('Got result for run ' + data._response._data);
 	            data._response._data.forEach(function(d, i, a) {
 	            	self.emit(run.eventSubsctiptionId[i], run.state[i], d);
 	            });
-            // ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Switchable'].outgoingOperation);
-            // logger.trace('Got power state ' + ret);
-            // return resolve(ret);
-        });
+            }, function(err) {
+            	return reject('Failed with error ' + err);
+            });
 	} else {
 	}
 	// 	self._modbusRTU.commands.execute(resourceId, facade).then(function(response) {
@@ -236,10 +231,10 @@ Scheduler.prototype.execute = function(run) {
 	// 		self.emit(resourceId + facade, facade, response);
 	// 	});
 	// }
-}
+};
 
 Scheduler.prototype.isRunning = function() {
 	return this._isRunning;
-}
+};
 
 module.exports = Scheduler;

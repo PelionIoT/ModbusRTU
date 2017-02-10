@@ -1,13 +1,13 @@
 var Logger = require('./../utils/logger');
 var DEFINES = require('./../lib/defs').DEFINES;
 var logger = new Logger( {moduleName: 'FunctionCode', color: 'green'} );
-var Manager = require('./l3-messenger');
+var Transport = require('./l2-transport');
 var Message = require('./../utils/message');
 var handleBars = require('handlebars');
 
 //The second byte sent by the Master is the Function code. This number tells the slave which table to access and whether to read from or write to the table.
 var FunctionCode = function() {
-	this._manager = null;
+	this._transport = null;
 };
 
 // FunctionCode.prototype = Object.create(EventEmitter.prototype);
@@ -16,8 +16,8 @@ FunctionCode.prototype.start = function(opts) {
 	var self = this;
 
 	return new Promise(function(resolve, reject) {
-		self._manager = new Manager();
-		self._manager.start(opts).then(function() {
+		self._transport = new Transport(opts);
+		self._transport.start().then(function() {
 			logger.info('Started successfully');
 			resolve();
 		}, function(err) {
@@ -31,81 +31,53 @@ FunctionCode.prototype.start = function(opts) {
 	});
 };
 
-FunctionCode.prototype.call = function(fc) {
+FunctionCode.prototype.call = function(fc, a, d, l, o) {
 	var self = this;
 	switch(fc) {
 		case 0x01:
-			return function(a, d, l, o, c) { self.readCoils(a, d, l, o, c); };
+			return self.readCoils(a, d, l, o);
 		break;
 
 		case 0x02:
-			return function(a, d, l, o, c) { self.readDiscreteInputs(a, d, l, o, c); };
+			return self.readDiscreteInputs(a, d, l, o);
 		break;
 
 		case 0x03:
-			return function(a, d, l, o, c) { self.readHoldingRegisters(a, d, l, o, c); };
+			return self.readHoldingRegisters(a, d, l, o);
 		break;
 
 		case 0x04:
-			return function(a, d, l, o, c) { self.readDiscreteInputs(a, d, l, o, c); };
+			return self.readDiscreteInputs(a, d, l, o);
 		break;
 
 		case 0x05:
-			return function(a, d, l, c) { self.writeCoil(a, d, l, c); };
+			return self.writeCoil(a, d, l);
 		break;
 
 		case 0x06:
-			return function(a, d, l, c) { self.writeRegister(a, d, l, c); };
+			return self.writeRegister(a, d, l);
 		break;
 
 		case 0x0F:
-			return function(a, d, l, c) { self.writeCoils(a, d, l, c); };
+			return self.writeCoils(a, d, l);
 		break;
 
 		case 0x10:
-			return function(a, d, l, c) { self.writeRegisters(a, d, l, c); };
+			return self.writeRegisters(a, d, l);
 		break;
 
 		default:
 			logger.error('Unknown function code called. This should not have happened.');
-			return function(address, dataAddress, length, cb) {
-				return Promise.reject(new Error('Unknow function code called. This should not have happened!. Please assign function code from ' + Object.keys(DEFINES.FUNCTION_CODE_ID)))
-			};
+			return Promise.reject(new Error('Unknow function code called. This should not have happened!. Please assign function code from ' + Object.keys(DEFINES.FUNCTION_CODE_ID)))
 		break;
 	}
 };
 
 //(01) Read Coils
-FunctionCode.prototype.readCoils = function (address, dataAddress, length, origin, cb) {
+FunctionCode.prototype.readCoils = function (address, dataAddress, length, origin) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function') {
-		throw new TypeError('readCoils: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('readCoils got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -124,42 +96,16 @@ FunctionCode.prototype.readCoils = function (address, dataAddress, length, origi
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_COIL_STATUS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(02) Read Discrete Inputs
-FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, length, origin, cb) {
+FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, length, origin) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function') {
-		throw new TypeError('readDiscreteInputs: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('readDiscreteInputs got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -178,42 +124,16 @@ FunctionCode.prototype.readDiscreteInputs = function (address, dataAddress, leng
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_INPUT_STATUS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(03) Reading Holding Registers
-FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, length, origin, cb) {
+FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, length, origin) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function') {
-		throw new TypeError('readHoldingRegisters: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('readHoldingRegisters got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -231,42 +151,16 @@ FunctionCode.prototype.readHoldingRegisters = function (address, dataAddress, le
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_HOLDING_REGISTERS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(04) Read Input Registers
-FunctionCode.prototype.readInputRegisters = function (address, dataAddress, length, origin, cb) {
+FunctionCode.prototype.readInputRegisters = function (address, dataAddress, length, origin) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function') {
-		throw new TypeError('readInputRegisters: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('readInputRegisters got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -285,42 +179,16 @@ FunctionCode.prototype.readInputRegisters = function (address, dataAddress, leng
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.READ_INPUT_REGISTERS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(05) Force Single Coil
-FunctionCode.prototype.writeCoil = function (address, dataAddress, state, cb) {
+FunctionCode.prototype.writeCoil = function (address, dataAddress, state) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function' && typeof state !== 'boolean') {
-		throw new TypeError('writeCoil: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('writeCoil got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -343,42 +211,16 @@ FunctionCode.prototype.writeCoil = function (address, dataAddress, state, cb) {
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.FORCE_SINGLE_COIL);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(06) Preset Single Register
-FunctionCode.prototype.writeRegister = function (address, dataAddress, value, cb) {
+FunctionCode.prototype.writeRegister = function (address, dataAddress, value) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function') {
-		throw new TypeError('writeRegister: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('writeRegister got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -397,42 +239,16 @@ FunctionCode.prototype.writeRegister = function (address, dataAddress, value, cb
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.PRESET_SINGLE_REGISTER);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(15) Force Multiple Coils
-FunctionCode.prototype.writeCoils = function (address, dataAddress, array, cb) {
+FunctionCode.prototype.writeCoils = function (address, dataAddress, array) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function' && typeof array	!== 'object') {
-		throw new TypeError('writeCoils: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('writeCoils got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -451,42 +267,16 @@ FunctionCode.prototype.writeCoils = function (address, dataAddress, array, cb) {
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.FORCE_MULTIPLE_COILS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
 
 //(16) Preset Multiple Registers
-FunctionCode.prototype.writeRegisters = function (address, dataAddress, array, cb) {
+FunctionCode.prototype.writeRegisters = function (address, dataAddress, array) {
 	var self = this;
 	var promise = {};
 	var msg;
-
-	//Error handling
-	if(typeof cb !== 'function' && typeof array	!== 'object') {
-		throw new TypeError('writeRegisters: Passed invalid argument')
-	}
-
-	// //Helpers
-	// function parser(cmdId, data) {
-	// 	var response = {}
-	// 	if(cmdId === DEFINES.SERIALAPI_CMD_ID.FUNC_ID_ZW_GET_RANDOM) {
-	// 		response.isGenerated = !!data.slice(0, 1)[0];
-	// 		response.numBytes = data.slice(1, 2)[0];
-	// 		response.randomBytes = data.slice(2);
-	// 	}
-	// 	return response;
-	// }
-
-	//RES
-	function responseCB(err, data) {
-		if(err) {
-			logger.error('writeRegisters got error ' + err);
-		} else {
-			// data.parsedResponse(parser(data._response._cmdId, data._response._cmdParams));
-		}
-		cb(err, data);
-	}
 
 	//REQ
 	return new Promise(function(resolve, reject) {
@@ -505,7 +295,7 @@ FunctionCode.prototype.writeRegisters = function (address, dataAddress, array, c
 		msg.respAddress(address);
 		msg.respCode(DEFINES.FUNCTION_CODE.PRESET_MULTIPLE_REGISTERS);
 
-		self._manager.push(msg, responseCB);
+		self._transport.send(msg);
 		delete msg;
 	});
 };
@@ -530,12 +320,12 @@ FunctionCode.prototype.evalOperation = function(inputData, operation) {
     return (typeof outputData === 'number') ? outputData.toFixed(2)/1 : outputData;
 }
 
-FunctionCode.prototype.getQueueLength = function() {
-	return this._manager.getQueueLength();
+FunctionCode.prototype.getTransportStatus = function() {
+	return this._transport.getStatus();
 };
 
 FunctionCode.prototype.flushQueue = function() {
-	return this._manager.flush();
+	return this._transport.flush();
 };
 
 module.exports = FunctionCode;

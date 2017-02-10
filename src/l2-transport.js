@@ -5,7 +5,6 @@ var DataFrame = require('./../utils/dataFrame');
 
 var logger = new Logger( { moduleName: 'Transport', color: 'cyan'} );
 
-var MAX_TRANSPORT_RETRANSMIT = 3;
 var ACK_TIMEOUT = 300; //ms
 var THROTTLE_RATE = 100; //ms
 
@@ -17,10 +16,8 @@ var Transport = function(options) {
 	if(typeof options === 'undefined') {
 		options = {};
 	}
-	this._incomingDataFrameCB = options.incomingDataFrameCB;
 
 	//constants
-	this._maxTransportRetransmit = options.maxTransportRetries || MAX_TRANSPORT_RETRANSMIT;
 	this._ackWaitTimeperiod = options.requestAckTimeout || ACK_TIMEOUT; //msecond, the transmitter MUST wait for at least 1600ms before deeming the Data frame lost.
 	this._serialInterfaceOptions = options.serialInterfaceOptions;
 
@@ -31,13 +28,23 @@ var Transport = function(options) {
 
 	//utils for indivdual transmissions
 	this._ackTimeout = null;
-	this._resendCount = 0;
 	this._inProgress = false;
 
 	this._waitBeforeTransmit = options.throttleRate || THROTTLE_RATE; //100ms wait before retransmit, giving enough time for the response to finish as it causes CAN frame
+
+    this._msgId = 0;
+    this._defaultResponseTimeout = 1000; //ms
+
+    this._validResponses = 0;
+    this._requestTimeouts = 0;
+    this._requests = 0;
+    this._crcErrors = 0;
+    this._unresponsiveErrors = 0;
+    this._invalidResponseLength = 0;
+    this._duplicates = 0;
 }
 
-Transport.prototype.start = function(options) {
+Transport.prototype.start = function() {
 	var self = this;
 
 	return new Promise(function(resolve, reject) {
@@ -60,58 +67,70 @@ Transport.prototype.stop = function() {
 	return this._serialComm.close();
 }
 
-Transport.prototype.send = function(msg) {
+Transport.prototype.getNextMsgId = function() {
+    return (this._msgId++ & 0xFFFF);
+};
+
+Transport.prototype.send = function(msg, cb) {
     if(!(msg instanceof Message)) {
         throw new TypeError('message should be of Message type');
     }
 
+    //Check if the similar msg is in the queue, if it is then dequeue that and add this to the back of the queue
+    var found;
+    try {
+        found = this._txQueue.find(function(element) { return ((element._requestType === msg._requestType) && (!element.waitingForResponse())); });
+    } catch(e) {
+        logger.error('Failed to search transmit queue ' + e);
+        cb('Failed to search tx queue ' + e, null);
+        return;
+    }
+
+    if(found) {
+        logger.warn('Found same request type queued- ' + found._requestType + ', dequeuing old message ' + found._msgId);
+        try {
+            this._duplicates++;
+            var req = this._txQueue.splice(this._txQueue.indexOf(found), 1)[0];
+            if(req._promise) req._promise.reject(new Error('New request of same type just arrived so not serving.'));
+        } catch(e) {
+            logger.error('Failed to dequeue ' + e + JSON.stringify(e));
+        }
+    }
+
+    if(typeof cb === 'function') {
+        msg.respCB(cb);
+        msg.respTimeout(this._defaultResponseTimeout);
+    } else {
+        // logger.warn('cb assigned is not a function');
+    }
+
+    msg.msgId(this.getNextMsgId());
+
     logger.debug('Msg' + msg._msgId + ' added message To TX Queue ' + JSON.stringify(msg));
     this._txQueue.push(msg);
+    this._requests++;
 
-    this.startSendSequence();
+    this.startSendSequence(msg.msgId());
 };
 
-Transport.prototype.handleIncomingData = function(buffer) {
-	console.log('data ', buffer);
-};
-
-Transport.prototype.assignIncomingDataFrameCB = function(cb) {
-	if(typeof cb === 'function')
-		this._incomingDataFrameCB = cb;
-};
-
-Transport.prototype.assignProgressReportCB = function(cb) {
-    if(typeof cb === 'function')
-        this._inProgressCB = cb;
-};
-
-Transport.prototype.dequeueRequest = function(msgId) {
-    var msg = this._txQueue.find(function(element) { return (element._msgId === msgId); });
-    if(!msg.waitingForResponse()) {
-        var index = this._txQueue.indexOf(msg);
-        if(index) this._txQueue.splice(index, 1);
-    }
-    return;
-};
-
-Transport.prototype.queueLength = function() {
-    return this._txQueue.length;
-};
-
-Transport.prototype.flush = function() {
-    this._txQueue.splice(1, this._txQueue.length);
-    return;
-};
-
-Transport.prototype.startSendSequence = function() {
+Transport.prototype.startSendSequence = function(msgId) {
     var self = this;
 
     if(!this._inProgress) {
 	    if(!this._ackTimeout && this._txQueue.length > 0) {
-	    	var buffer = this._txQueue[0]._request.toBuffer();
+            var buffer;
+            try {
+	    	  buffer = this._txQueue[0]._request.toBuffer();
+            } catch(e) {
+                logger.error('Failed to convert request to buffer ' + e);
+                this.completeSendSequence(new Error('Failed to convert request to buffer ' + e));
+                return;
+                //Dequeue this packet
+            }
 	    	logger.info('Msg' + this._txQueue[0]._msgId + ' ' + this._txQueue[0]._description + ' start send sequence ' + buffer.toString('hex'));
 
-            if(this._inProgress) this._inProgress(this._txQueue[0]._msgId);
+            //This msg is in progress
+            this._txQueue[0].waitingForResponse(true);         
 
 	        this.sendDataFrame(buffer);
 	        this._inProgress = true;
@@ -123,38 +142,39 @@ Transport.prototype.startSendSequence = function() {
 	    }
 	}
     else {
-    	logger.debug('Msg' + this._txQueue[this._txQueue.length - 1]._msgId + ' ' + this._txQueue[this._txQueue.length - 1]._description + ' send deferred');
+    	logger.debug('In progress... Msg ' + msgId + ' send deferred');
     }
 };
 
-Transport.prototype.completeSendSequence = function(e, incomingData) {
+Transport.prototype.completeSendSequence = function(err, incomingData) {
 	var self = this;
     var msg = this._txQueue.shift(); //FIFO
 
     if(msg) {
-        this._resendCount = 0;
-        // logger.debug('Msg' + msg._msgId + ' ' + msg._description + ' complete send sequence');
         logger.trace('Msg' + msg._msgId + ' complete send sequence ' + JSON.stringify(msg));
-
-        logger.trace('Proceed to next msg send');
-        // this will cause it to continue to send queued commands
-        clearTimeout(this._ackTimeout);
-        delete this._ackTimeout;
-
+        msg.waitingForResponse(false);
         try {
-            if(msg._reqCB) msg._reqCB(msg._msgId, e);
-            if(typeof this._incomingDataFrameCB === 'function') {
-                this._incomingDataFrameCB(msg, incomingData);
+            if(err) {
+                if(msg._promise) msg._promise.reject(err);
+            } else {
+                // if(msg._promise) msg._promise.resolve();
+                self.handleResponse(msg, incomingData);
             }
-        }
-        catch(err) {
+        } catch(e) {
             // log error, doesn't really matter to this layer
             // we just don't want to crash anything here
-           	logger.error('Msg' + msg._msgId + ' request callback error ' + err);
+           	logger.error('Msg' + msg._msgId + ' request callback error ' + e);
+            if(msg._promise) msg._promise.reject(e);
         }
     } else {
         logger.warn('Could not find any message in the txQueue to completeSendSequence');
     }
+
+    logger.trace('Proceed to next msg send');
+
+    clearTimeout(this._ackTimeout);
+    delete this._ackTimeout;
+    this._serialComm.flush();
 
     setTimeout(function() {
 	    self._inProgress = false;
@@ -162,38 +182,60 @@ Transport.prototype.completeSendSequence = function(e, incomingData) {
     }, self._waitBeforeTransmit);
 };
 
-Transport.prototype.retransmit = function() {
-    var self = this;
-
-    if(this._resendCount == this._maxTransportRetransmit) {
-    	logger.error('Retransmission failed after ' + this._resendCount + ' retries');
-        this.onUnresponsiveError();
+//FIFO so we look for the first msg which matches the command
+Transport.prototype.handleResponse = function(msg, frame) {
+    if(!(frame instanceof DataFrame)) {
+        throw new TypeError('incoming response should be of DataFrame type');
     }
-    else {
-        // var waitTimeout = 100 + 1000*this._resendCount;
 
-        // logger.warn('Backing off for ' +  waitTimeout + 'ms before resend');
-        // this.resendWaitTimeout = setTimeout(function() {
-            logger.debug('Restart send sequence'+ self._resendCount);
-            clearTimeout(self._ackTimeout);
-            delete self._ackTimeout; // get rid of this so resend will occur
-            // setTimeout(function() {
-			    self._inProgress = false;
-			    self.startSendSequence();
-		    // }, self._waitBeforeTransmit);
-        // }, waitTimeout);
+    if(!!msg) {
+        logger.info('Msg' + msg._msgId + ' got response ' + frame.getOriginalBuffer().toString('hex'));
+        if(frame._length == 5 && frame._funcCode == (0x80 | msg.respCode())) {
+            if(msg._promise) msg._promise.reject(new Error('Modbus Bad Response ' + frame.getException()));
+            return;
+        }
+        //Do sanity check of the response
+        if(msg.respLength() !== 0 && frame._length != msg.respLength()) {
+            if(msg._promise) msg._promise.reject(new Error('Data length error, expected ' + msg.respLength() + ' got ' + frame._length));
+            return;
+        }
 
-        this._resendCount += 1;
+        msg.response(frame);
+        if(msg._respRequired) {
+            msg._respCB(null, msg);
+        } else if(msg._promise) {
+            msg._promise.resolve(msg);
+        } else {
+            logger.error('No response handler for this msg ' + msg._msgId);
+        }
+    } else {
+        logger.warn('Received response for no request, not possible on Modbus');
     }
 };
 
-Transport.prototype.handleAckFrame = function(incomingData) {
+
+Transport.prototype.retransmit = function() {
+    var self = this;
+
+    if(this._txQueue[0]._retries-- > 0) {
+        logger.debug('Retry request left ' + this._txQueue[0]._retries);
+        clearTimeout(self._ackTimeout);
+        delete self._ackTimeout; // get rid of this so resend will occur
+        self._inProgress = false;
+        self.startSendSequence();
+    } else {
+        this.onUnresponsiveError();
+    }
+};
+
+Transport.prototype.handleResponseFrame = function(incomingData) {
     // ready to send next data frame if necessary
     this.completeSendSequence(null, incomingData);
 };
 
 Transport.prototype.handleNakFrame = function() {
     // may need to resend data frame
+    this._requestTimeouts++;
     this.retransmit();
 };
 
@@ -204,36 +246,33 @@ Transport.prototype.handleDataFrame = function(buffer) {
 	var incomingData = new DataFrame(buffer);
 	// logger.info('Incoming frame ' + JSON.stringify(incomingData));
 	if(incomingData.isValidLength() && incomingData.isValidChecksum()) {
-		this.handleAckFrame(incomingData);
+        this._validResponses++;
+		this.handleResponseFrame(incomingData);
 	} else {
 		if(!incomingData.isValidChecksum()) {
 			this.onCRCError();
 		}
 		if(!incomingData.isValidLength()) {
-			logger.error('Received frame with invalid length < 5');
+            this.onInvalidResponseLength();
 		}
 	}
 };
 
-Transport.prototype.handleInvalidMessageType = function(messageType) {
-    // just log error for now
-    logger.error('RX ----- Invalid Frame Type ' + messageType);
-};
 Transport.prototype.onCRCError = function() {
-    this._consecutiveCRCErrors += 1;
+    logger.error('Received response CRC Error');
+    this._crcErrors++;
+    this.completeSendSequence(new Error('Received response CRC Error!'));
+};
 
-    logger.error('CRC Error');
-    if(this._consecutiveCRCErrors == 3) {
-    	//TODO - implement hard reset and soft reset
-
-        logger.error('Three Consectutive CRC Errors');
-        this._consecutiveCRCErrors = 0;
-    }
+Transport.prototype.onInvalidResponseLength = function() {
+    logger.error('Received response with invalid length < 5');
+    this._invalidResponseLength++;
+    this.completeSendSequence(new Error('Received response with invalid length < 5!'));
 };
 
 Transport.prototype.onUnresponsiveError = function() {
-    this._serialComm.flush();
-    this.completeSendSequence(new Error('Did not receive ack'));
+    this._unresponsiveErrors++;
+    this.completeSendSequence(new Error('Did not receive response!'));
 };
 
 Transport.prototype.sendDataFrame = function(buffer) {
@@ -245,53 +284,68 @@ Transport.prototype.sendDataFrame = function(buffer) {
     });
 };
 
+
+Transport.prototype.queueLength = function() {
+    return this._txQueue.length;
+};
+
+Transport.prototype.getCurrentMsgId = function() {
+    return this._msgId;
+};
+
+Transport.prototype.flush = function() {
+    this._txQueue.splice(1, this._txQueue.length);
+    return;
+};
+
 //Utils for testing
 Transport.prototype.getQueue = function() {
 	return this._txQueue;
-}
+};
 
-Transport.prototype.getTotalAckFramesRecevied = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalValidResponsesRecevied = function() {
+	return this._validResponses;
+};
 
-Transport.prototype.getTotalCanFramesRecevied = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalResponses = function() {
+    return this._validResponses;
+};
 
-Transport.prototype.getTotalNakFramesRecevied = function() {
-	//not yet implemented
-}
-
-Transport.prototype.getTotalDataFramesRecevied = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalNoResponsesRecevied = function() {
+	return this._requestTimeouts;
+};
 
 Transport.prototype.getTotalRequestSent = function() {
-	//not yet implemented
-}
+	return this._requests;
+};
 
-Transport.prototype.getTotalIncomingDataFrames = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalCrcErrors = function() {
+    return this._crcErrors;
+};
 
-Transport.prototype.getTotalFailures = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalUnresponsiveErrors = function() {
+    return this._unresponsiveErrors;
+};
 
-Transport.prototype.getTotalBackOffs = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalInvalidLengthErrors = function() {
+    return this._invalidResponseLength;
+};
 
-Transport.prototype.getTotalAckFramesSent = function() {
-	//not yet implemented
-}
+Transport.prototype.getTotalDuplicates = function() {
+    return this._duplicates;
+};
 
-Transport.prototype.getTotalCanFramesSent = function() {
-	//not yet implemented
-}
-
-Transport.prototype.getTotalNakFramesSent = function() {
-	//not yet implemented
+Transport.prototype.getStatus = function() {
+    return {
+        processedRequests: this.getTotalRequestSent(),
+        validResponses: this.getTotalResponses(),
+        queueLength: this.queueLength(),
+        unresponsiveErrors: this.getTotalUnresponsiveErrors(),
+        invalidLengthErrors: this.getTotalInvalidLengthErrors(),
+        crcErrors: this.getTotalCrcErrors(),
+        requestTimeouts: this.getTotalNoResponsesRecevied(),
+        duplicates: this.getTotalDuplicates()
+    }
 }
 
 module.exports = Transport;

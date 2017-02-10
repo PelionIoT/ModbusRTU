@@ -286,8 +286,8 @@ var ModbusRTU = {
 		listSchedulerCommands: function() {
 			return this._scheduler.listRegisteredCommands();
 		},
-		getQueueLength: function() {
-			return this._fc.getQueueLength();
+		getTransportStatus: function() {
+			return this._fc.getTransportStatus();
 		},
 		deleteRuntime: function() {
 			var p = [];
@@ -413,6 +413,12 @@ var ModbusRTU = {
 			var registerRuns = metadata.registerRuns;
 			delete metadata.registerRuns;
 
+			var configurationRegisters = null;
+			if(metadata.configurationRegisters) {
+				configurationRegisters = metadata.configurationRegisters;
+				delete metadata.configurationRegisters;
+			}
+
 			function getNext() {
 				if(typeof registerRuns[0] !== 'undefined') {
 					if(Object.keys(registerRuns[0].indexes).length === 0) {
@@ -468,7 +474,37 @@ var ModbusRTU = {
 						});
 					} else {
 						logger.info('Format 3 device controllers completed!');
-						return resolve(response);
+						if(configurationRegisters) {
+							logger.trace('Got configurationRegisters ' + JSON.stringify(configurationRegisters));
+							var dcmd = metadata;
+
+							dcmd.resourceID = 'ModbusRegistersS' + metadata.slaveAddress + new Buffer(metadata.resourceIdPosfix.replace(/[/]/g,'_') +
+										metadata.slaveAddress +
+										self._siodev.replace(/[/]/g,'') +
+										self._relayId.replace(/[/]/g,'')).toString('base64').replace(/[^a-zA-Z0-9]/g,'');
+							dcmd.configurationRuns = {};
+							dcmd.interfaces = { "Core/Interfaces/Configuration": {} };
+							configurationRegisters.forEach(function(run) {
+								dcmd.configurationRuns[run.dataAddress] = {};
+								dcmd.configurationRuns[run.dataAddress].dataAddress = run.dataAddress;
+								dcmd.configurationRuns[run.dataAddress].range = run.range;
+								dcmd.configurationRuns[run.dataAddress].pollingInterval = run.pollingIntervalpollingInterval;
+								dcmd.configurationRuns[run.dataAddress].writeFunctionCode = run.writeFunctionCode;
+								dcmd.configurationRuns[run.dataAddress].readFunctionCode = run.readFunctionCode;
+								dcmd.configurationRuns[run.dataAddress].indexes = run.indexes;
+							});
+							self.commands._startDeviceController(dcmd).then(function(resp) {
+								logger.info('Starting configurationRun controller');
+								response.push(resp);
+								return resolve(response);
+							}, function(err) {
+								return reject(err);
+							}).catch(function(err) {
+								return reject(err);
+							});
+						} else {
+							return resolve(response);
+						}
 					}
 				}
 

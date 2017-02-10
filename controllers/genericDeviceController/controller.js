@@ -22,7 +22,7 @@ var {{controllerClassName}} = {
         this._facadeState = {};
         this._facadeData = {};
 
-        if(this._interfaces) {
+        if(this._interfaces && !this._metadata.configurationRuns) {
             //Register each interface polling to scheduler
             Object.keys(self._interfaces).forEach(function(intf) {
                 if(typeof self._devjsInterfaces[intf] === 'undefined') {
@@ -64,6 +64,10 @@ var {{controllerClassName}} = {
                     })
                 }
             })
+        } 
+
+        if(this._metadata.configurationRuns) {
+            //Got configuration runs
         }
 
         if(this._registers) {
@@ -158,19 +162,17 @@ var {{controllerClassName}} = {
                     if(typeof self._interfaces['Facades/Switchable'].readFunctionCode === 'undefined') {
                         return reject('This facade has no function code defined');
                     }
-                    return self._fc.call(self._interfaces['Facades/Switchable'].readFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/Switchable'].readFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/Switchable'].dataAddress,
                         self._interfaces['Facades/Switchable'].range,
-                        origin,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Switchable'].outgoingOperation);
-                        logger.trace('Got power state ' + ret);
-                        return resolve(ret);
-                    });
+                        origin).then(function(data) {
+                            ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Switchable'].outgoingOperation);
+                            logger.trace('Got power state ' + ret);
+                            return resolve(ret);
+                        }, function(err) {
+                            return reject('Failed with error ' + err);
+                        });
                 });
             },
             set: function(value) {
@@ -180,16 +182,14 @@ var {{controllerClassName}} = {
                     if(typeof self._interfaces['Facades/Switchable'].writeFunctionCode === 'undefined') {
                         return reject('This facade has no write function code defined');
                     }
-                    return self._fc.call(self._interfaces['Facades/Switchable'].writeFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/Switchable'].writeFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/Switchable'].dataAddress,
-                        value,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        return resolve();
-                    });
+                        value).then(function() {
+                            resolve();
+                        }, function(err) {
+                            reject(err);
+                        });
                 });
             }
         },
@@ -204,23 +204,17 @@ var {{controllerClassName}} = {
                     if(typeof self._interfaces['Facades/Register'].readFunctionCode === 'undefined') {
                         return reject('This facade has no function code defined');
                     }
-                    return self._fc.call(self._interfaces['Facades/Register'].readFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/Register'].readFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/Register'].dataAddress,
                         self._interfaces['Facades/Register'].range,
-                        origin,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Register'].outgoingOperation);
-                        logger.trace('Got register state ' + ret);
-                        return resolve(ret);
-
-                        // ret = data._response._data;
-                        // logger.trace('Got register ' + ret);
-                        // return resolve(ret);
-                    })
+                        origin).then(function(data) {
+                            ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/Register'].outgoingOperation);
+                            logger.trace('Got register state ' + ret);
+                            return resolve(ret);
+                        }, function(err) {
+                            return reject('Failed with error ' + err);
+                        });
                 })
             },
             set: function(value) {
@@ -229,16 +223,14 @@ var {{controllerClassName}} = {
                     if(typeof self._interfaces['Facades/Register'].writeFunctionCode === 'undefined') {
                         return reject('This facade has no write function code defined');
                     }
-                    return self._fc.call(self._interfaces['Facades/Register'].writeFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/Register'].writeFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/Register'].dataAddress,
-                        value,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        return resolve();
-                    });
+                        value).then(function() {
+                            resolve();
+                        }, function(err) {
+                            reject(err);
+                        });
                 });
             }
         },
@@ -253,19 +245,17 @@ var {{controllerClassName}} = {
                     if(typeof self._interfaces['Facades/HasTemperature'].readFunctionCode === 'undefined') {
                         return reject('This facade has no function code defined');
                     }
-                    return self._fc.call(self._interfaces['Facades/HasTemperature'].readFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/HasTemperature'].readFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/HasTemperature'].dataAddress,
                         self._interfaces['Facades/HasTemperature'].range,
-                        origin,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasTemperature'].outgoingOperation);
-                        logger.trace('Got temperature ' + ret);
-                        return resolve(ret);
-                    })
+                        origin).then(function(data) {
+                            ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasTemperature'].outgoingOperation);
+                            logger.trace('Got temperature ' + ret);
+                            return resolve(ret);
+                        }, function(err) {
+                            return reject('Failed with error ' + err);
+                        });
                 })
             },
             set: function(value) {
@@ -284,22 +274,56 @@ var {{controllerClassName}} = {
                         return reject('This facade has no function code defined');
                     }
 
-                    return self._fc.call(self._interfaces['Facades/HasLuminance'].readFunctionCode)(
+                    return self._fc.call(self._interfaces['Facades/HasLuminance'].readFunctionCode,
                         self._slaveAddress,
                         self._interfaces['Facades/HasLuminance'].dataAddress,
                         self._interfaces['Facades/HasLuminance'].range,
-                        origin,
-                        function(err, data) {
-                        if(err) {
-                            return reject('Failed with error ' + err)
-                        }
-                        ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasLuminance'].outgoingOperation);
-                        logger.trace('Got luminance ' + ret);
-                        return resolve(ret);
-                    })
+                        origin).then(function(data) {
+                            ret = self._fc.evalOperation(data._response._data[0], self._interfaces['Facades/HasLuminance'].outgoingOperation);
+                            logger.trace('Got luminance ' + ret);
+                            return resolve(ret);
+                        }, function(err) {
+                            return reject('Failed with error ' + err);
+                        });
                 })
             },
             set: function(value) {
+                return 'Not yet implemented';
+            }
+        },
+        configuration: {
+            get: function(origin) {
+                var self = this;
+                var ret = {};
+                var p = [];
+                return new Promise(function(resolve, reject) {
+                    if(!self._metadata.configurationRuns) {
+                        return reject('This facade is not supported by controller');
+                    }
+                    Object.keys(self._metadata.configurationRuns).forEach(function(da) {
+                        var run = self._metadata.configurationRuns[da];
+                        ret[run.dataAddress] = {};
+                        p.push(self._fc.call(run.readFunctionCode,
+                            self._slaveAddress,
+                            run.dataAddress,
+                            run.range,
+                            origin).then(function(data) {
+                                logger.info('For dataaddress ' + run.dataAddress + ' got response ' + data._response._data);
+                                ret[run.dataAddress] = data._response._data;
+                            }, function(err) {
+                                ret[run.dataAddress] = "Error- " + err;
+                            })
+                        );
+                    });
+
+                    Promise.all(p).then(function() {
+                        resolve(ret);
+                    }, function(err) {
+                        reject(err);
+                    })
+                })
+            }, 
+            set: function() {
                 return 'Not yet implemented';
             }
         }
@@ -380,6 +404,15 @@ var {{controllerClassName}} = {
         },
         getInterfaces: function() {
             return this._interfaces;
+        },
+        getConfiguration: function() {
+            return this.state.configuration.get();
+        },
+        setConfiguration: function(value) {
+            return this.state.configuration.set(value);
+        },
+        setToDefault: function() {
+            return 'Not supported';
         }
     }
 };

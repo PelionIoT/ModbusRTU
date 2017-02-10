@@ -8,31 +8,10 @@
     "enable": true,
     "overwrite": true,
     "registerRuns": [
-        {
+        {//Installer
             "dataAddress": 100,
             "range": 8,
-            "pollingInterval": 10000,
-            "readFunctionCode": 3,
-            "writeFunctionCode": 6,
-            "indexes": {
-                "2": {
-                    "interface": "Facades/Switchable",
-                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
-                    "name": "Function3",
-                    "description": "Output DO3"
-                },
-                "3": {
-                    "interface": "Facades/Switchable",
-                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
-                    "name": "Function4",
-                    "description": "Output DO4"
-                }
-            }
-        },
-        {
-            "dataAddress": 100,
-            "range": 8,
-            "pollingInterval": 5000,
+            "pollingInterval": 1000,
             "readFunctionCode": 3,
             "writeFunctionCode": 6,
             "indexes": {
@@ -47,46 +26,19 @@
                     "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
                     "name": "Function2",
                     "description": "Output DO2"
-                }
-            }
-        },
-        {
-            "dataAddress": 100,
-            "range": 8,
-            "pollingInterval": 20000,
-            "readFunctionCode": 3,
-            "writeFunctionCode": 6,
-            "indexes": {
-                "6": {
+                },
+                "2": {
                     "interface": "Facades/Switchable",
                     "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
-                    "name": "Function7",
-                    "description": "Output DO7"
-                }
-            }
-        },
-        {
-            "dataAddress": 100,
-            "range": 8,
-            "pollingInterval": 15000,
-            "readFunctionCode": 3,
-            "writeFunctionCode": 6,
-            "indexes": {
-                "7": {
+                    "name": "Function3",
+                    "description": "Output DO3"
+                },
+                "3": {
                     "interface": "Facades/Switchable",
                     "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
-                    "name": "Function8",
-                    "description": "Output DO8"
-                }
-            }
-        },
-        {
-            "dataAddress": 100,
-            "range": 8,
-            "pollingInterval": 30000,
-            "readFunctionCode": 3,
-            "writeFunctionCode": 6,
-            "indexes": {
+                    "name": "Function4",
+                    "description": "Output DO4"
+                },
                 "4": {
                     "interface": "Facades/Switchable",
                     "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
@@ -98,6 +50,567 @@
                     "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
                     "name": "Function6",
                     "description": "Output DO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function7",
+                    "description": "Output DO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function8",
+                    "description": "Output DO8"
+                }
+            }
+        },
+        {
+            "dataAddress": 1006,
+            "range": 1,
+            "pollingInterval": 1000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {//Customer/manager
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "SoftOveride",
+                    "description": "SoftOveride"
+                }
+            }
+        },
+        {//Installer will use this
+            "dataAddress": 500,
+            "range": 8,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO1",
+                    "description": "InvertDO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO2",
+                    "description": "InvertDO2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO3",
+                    "description": "InvertDO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO4",
+                    "description": "InvertDO4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO5",
+                    "description": "InvertDO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO6",
+                    "description": "InvertDO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO7",
+                    "description": "InvertDO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO8",
+                    "description": "InvertDO8"
+                }
+            }
+        }
+    ],
+    "configurationRegisters": [
+        {//Installer
+            "dataAddress": 100,
+            "range": 8,
+            "pollingInterval": 1000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function1",
+                    "description": "Output DO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function2",
+                    "description": "Output DO2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function3",
+                    "description": "Output DO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function4",
+                    "description": "Output DO4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function5",
+                    "description": "Output DO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function6",
+                    "description": "Output DO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function7",
+                    "description": "Output DO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Function8",
+                    "description": "Output DO8"
+                }
+            }
+        },
+        {//Installer will use this
+            "dataAddress": 500,
+            "range": 8,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO1",
+                    "description": "InvertDO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO2",
+                    "description": "InvertDO2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO3",
+                    "description": "InvertDO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO4",
+                    "description": "InvertDO4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO5",
+                    "description": "InvertDO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO6",
+                    "description": "InvertDO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO7",
+                    "description": "InvertDO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "InvertDO8",
+                    "description": "InvertDO8"
+                }
+            }
+        },
+        {
+            "dataAddress": 200,
+            "range": 10,
+            "pollingInterval": 1000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} > 100 ? 'off' : 'on'",
+                    "name": "Override",
+                    "description": "Override Button AI1",
+                    "eventThreshold": 100
+                },
+                "1": {
+                    "interface": "Facades/HasLuminance",
+                    "outgoingOperation": "{{value}}",
+                    "name": "PhotoCell",
+                    "description": "Connected to AI2",
+                    "eventThreshold": 5
+                },
+                "2": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "OAT",
+                    "description": "OAT",
+                    "eventThreshold": 10
+                },
+                "3": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Cooler",
+                    "description": "Cooler",
+                    "eventThreshold": 10
+                },
+                "4": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Freezer",
+                    "description": "Freezer",
+                    "eventThreshold": 10
+                },
+                "5": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "BeerCave",
+                    "description": "BeerCave",
+                    "eventThreshold": 10
+                },
+                "6": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Ice1",
+                    "description": "Ice1",
+                    "eventThreshold": 10
+                },
+                "7": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Ice2",
+                    "description": "Ice2",
+                    "eventThreshold": 10
+                },
+                "8": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Ice3",
+                    "description": "Ice3",
+                    "eventThreshold": 10
+                },
+                "9": {
+                    "interface": "Facades/HasTemperature",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Ice4",
+                    "description": "Ice4",
+                    "eventThreshold": 10
+                }
+            }
+        },
+        {
+            "dataAddress": 1000,
+            "range": 8,
+            "pollingInterval": 1000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Allon",
+                    "description": "Allon"
+                },
+                "1": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "CTRSP",
+                    "description": "CTRSP"
+                },
+                "2": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "ClrOver",
+                    "description": "ClrOver"
+                },
+                "3": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "disablecomtmr",
+                    "description": "disablecomtmr"
+                },
+                "4": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "SecManual",
+                    "description": "SecManual"
+                },
+                "5": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "PhotoManual",
+                    "description": "PhotoManual"
+                },
+                "6": {//Customer/manager
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "SoftOveride",
+                    "description": "SoftOveride"
+                },
+                "7": {
+                    "interface": "Facades/Switchable",
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HardOverride",
+                    "description": "HardOverride"
+                }
+            }
+        },
+        {
+            "dataAddress": 700,
+            "range": 2,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Register", //Add button
+                    "outgoingOperation": "{{value}}",
+                    "name": "Level",
+                    "description": "Button Level"
+                },
+                "1": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "PhoLev1",
+                    "description": "PhoLev1"
+                }
+            }
+        },
+        {
+            "dataAddress": 800,
+            "range": 7,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Register", //Add button
+                    "outgoingOperation": "{{value}}",
+                    "name": "MullDutyCycle",
+                    "description": "MullDutyCycle"
+                },
+                "2": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Pho1OnTm",
+                    "description": "Pho1OnTm"
+                },
+                "3": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "Pho1OffTm",
+                    "description": "Pho1OffTm"
+                },
+                "6": {
+                    "interface": "Facades/Register",
+                    "outgoingOperation": "{{value}}",
+                    "name": "OverTime1",
+                    "description": "OverTime1"
+                }
+            }
+        },
+        {
+            "dataAddress": 400,
+            "range": 8,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO1",
+                    "description": "OffDO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO2",
+                    "description": "OffDO2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO3",
+                    "description": "OffDO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO4",
+                    "description": "OffDO4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO5",
+                    "description": "OffDO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO6",
+                    "description": "OffDO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO7",
+                    "description": "OffDO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "OffDO8",
+                    "description": "OffDO8"
+                }
+            }
+        },
+        {
+            "dataAddress": 300,
+            "range": 8,
+            "pollingInterval": 5000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO1",
+                    "description": "HandDO1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO2",
+                    "description": "HandDO2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO3",
+                    "description": "HandDO3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO4",
+                    "description": "HandDO4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO5",
+                    "description": "HandDO5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO6",
+                    "description": "HandDO6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO7",
+                    "description": "HandDO7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "HandDO8",
+                    "description": "HandDO8"
+                }
+            }
+        },
+        {
+            "dataAddress": 900,
+            "range": 8,
+            "pollingInterval": 1000,
+            "readFunctionCode": 3,
+            "writeFunctionCode": 6,
+            "indexes": {
+                "0": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay1",
+                    "description": "Relay1"
+                },
+                "1": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay2",
+                    "description": "Relay2"
+                },
+                "2": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay3",
+                    "description": "Relay3"
+                },
+                "3": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay4",
+                    "description": "Relay4"
+                },
+                "4": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay5",
+                    "description": "Relay5"
+                },
+                "5": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay6",
+                    "description": "Relay6"
+                },
+                "6": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay7",
+                    "description": "Relay7"
+                },
+                "7": {
+                    "interface": "Facades/Switchable", //Add button
+                    "outgoingOperation": "{{value}} != 1 ? 'off' : 'on'",
+                    "name": "Relay8",
+                    "description": "Relay8"
                 }
             }
         }
