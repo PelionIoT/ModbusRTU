@@ -13,6 +13,7 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 
 	var scheduler;
 	var modbus;
+	var functionCode;
 	//Set loglevel
 	global.GLOBAL.ModbusLogLevel = options.logLevel || 2;
 
@@ -25,8 +26,15 @@ configurator.configure("ModbusRTU",__dirname).then(function(data) {
 		}
 	};
 
+	options.serialInterfaceOptions.onPortReconstruct = function() {
+		modbus._state = true;
+		if(scheduler) {
+			scheduler.start(modbus, functionCode);
+		}
+	};
+
 	function startModbus() {
-		var functionCode = new FunctionCode();
+		functionCode = new FunctionCode();
 		functionCode.start(options).then(function() {
 
 			modbus = new ModbusRTU(options.modbusResourceId || "ModbusDriver");

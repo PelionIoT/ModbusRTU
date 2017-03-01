@@ -17,7 +17,7 @@ var Scheduler = function(options) {
 	this._tokenDistributer = {};
 	this._commandsToExecute = [];
 	this._execute = 0;
-}
+};
 
 Scheduler.prototype = Object.create(EventEmitter.prototype);
 
@@ -33,13 +33,13 @@ Scheduler.prototype.start = function(modbusRTU, functionCode) {
 		//Check if resource command is registerd to be polled
 		self._updateCounters();
 	}, this._schedulerIntervalResolution);
-}
+};
 
 Scheduler.prototype.stop = function() {
 	logger.info('Stopping scheduler polling timer');
 	this._isRunning = false;
 	clearInterval(this._globalInterval);
-}
+};
 
 Scheduler.prototype.registerCommand = function(resourceId, pollingInterval, facade, slaveAddress, dataAddress, readFunctionCode, range) {
 	// var facade = Object.keys(command)[0];

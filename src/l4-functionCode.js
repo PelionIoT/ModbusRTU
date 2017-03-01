@@ -1,7 +1,7 @@
 var Logger = require('./../utils/logger');
 var DEFINES = require('./../lib/defs').DEFINES;
 var logger = new Logger( {moduleName: 'FunctionCode', color: 'green'} );
-var Transport = require('./l2-transport');
+var Transport = require('./l3-transport');
 var Message = require('./../utils/message');
 var handleBars = require('handlebars');
 

@@ -26,6 +26,7 @@ function getDateTime() {
 }
 
 var logger = console;
+global.GLOBAL.ModbusLogLevel = 5;
 if(typeof dev$ !== 'undefined') 
 	logger = log;
 

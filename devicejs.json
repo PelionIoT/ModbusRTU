@@ -13,6 +13,7 @@
     "private": true,
     "dependencies": {
         "devjs-configurator":"https://github.com/WigWagCo/devjs-configurator.git#devicejs2.0-compatibility",
+        "node-hotplug": "https://github.com/WigWagCo/node-hotplug.git",
         "jsonminify" : "^0.2.3",
         "serialport": "3.1.2",
         "es6-promise": "^3.0.2",

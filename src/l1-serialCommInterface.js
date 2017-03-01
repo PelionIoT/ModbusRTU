@@ -95,7 +95,7 @@ SerialCommInterface.prototype.start = function() {
 			resolve();
 		});
 	});
-}
+};
 
 SerialCommInterface.prototype.write = function(data, callback) {
 	var self = this;
@@ -114,22 +114,22 @@ SerialCommInterface.prototype.write = function(data, callback) {
 		}
 		logger.debug('Write successful');
 	});
-}
+};
 
 //Check is the serial port is open, returns boolean
 SerialCommInterface.prototype.isOpen = function() {
 	return this._serialPort.isOpen();
-}
+};
 
 //Pauses an open connection
 SerialCommInterface.prototype.pause = function() {
 	return this._serialPort.pause();
-}
+};
 
 //Resumes a paused connection
 SerialCommInterface.prototype.resume = function() {
 	return this._serialPort.resume();
-}
+};
 
 //Flushes data received but not read
 SerialCommInterface.prototype.flush = function() {
@@ -143,8 +143,8 @@ SerialCommInterface.prototype.flush = function() {
 			return;
 		}
 		return;
-	})
-}
+	});
+};
 
 //Waits until all output data has been transmitted to the serial port
 SerialCommInterface.prototype.drain = function() {
@@ -154,8 +154,8 @@ SerialCommInterface.prototype.drain = function() {
 			return;
 		}
 		return;
-	})
-}
+	});
+};
 
 
 /**
@@ -171,7 +171,7 @@ SerialCommInterface.prototype.close = function() {
 			return;
 		}
 		logger.info('Closed open port successfully '+ self._siodev);
-	})
-}
+	});
+};
 
 module.exports = SerialCommInterface;

@@ -1,4 +1,5 @@
 var SerialCommInterface = require('./l1-serialCommInterface');
+var Discoverer = require('./l2-discoverer');
 var Logger = require('./../utils/logger');
 var Message = require('./../utils/message');
 var DataFrame = require('./../utils/dataFrame');
@@ -22,6 +23,7 @@ var Transport = function(options) {
 	this._serialInterfaceOptions = options.serialInterfaceOptions;
 
 	this._serialComm = null;
+    this._discoverer = null;
 
 	//Queue for outgoing messages
 	this._txQueue = [];
@@ -42,30 +44,53 @@ var Transport = function(options) {
     this._unresponsiveErrors = 0;
     this._invalidResponseLength = 0;
     this._duplicates = 0;
-}
+};
 
 Transport.prototype.start = function() {
 	var self = this;
 
 	return new Promise(function(resolve, reject) {
-		self._serialComm = new SerialCommInterface(self._serialInterfaceOptions);
-		self._serialComm.start().then(function() {
-			logger.info('Started successfully with ' + JSON.stringify(self._serialInterfaceOptions));
-			resolve();
-		}, function(err) {
-			logger.error('Failed with error '+ err);
-			reject(err);
-		});
+        self._discoverer = new Discoverer(self._serialInterfaceOptions);
 
-		self._serialComm.on('data', function(data) {
-			self.handleDataFrame(data);
-		});
+        self._discoverer.on('newDeviceDiscovered', function(uuid) {
+            var device = self._discoverer.getDevice(uuid);
+
+            if(device) {
+                self._serialInterfaceOptions.siodev = device.DEVNAME;
+                self._serialComm = new SerialCommInterface(self._serialInterfaceOptions);
+
+                self._serialComm.on('data', function(data) {
+                    self.handleDataFrame(data);
+                });
+                
+                self._serialComm.start().then(function() {
+                    logger.info('Started successfully with ' + JSON.stringify(self._serialInterfaceOptions));
+                    self._serialInterfaceOptions.onPortReconstruct();
+                }, function(err) {
+                    logger.error('Failed with error '+ err);
+                });
+            }
+        }); 
+
+        self._discoverer.on('deviceRemoved', function(uuid) {
+            self._serialComm.close();
+            delete self._serialComm;
+        });
+
+
+        self._discoverer.start().then(function() {
+            logger.info('Hotplug started successfully');
+            resolve();
+        }, function(err) {
+            logger.error('Failed to start hotplug ' + err);
+            reject(err);
+        });
 	});
-}
+};
 
 Transport.prototype.stop = function() {
-	return this._serialComm.close();
-}
+	return this._serialComm ? this._serialComm.close() : null;
+};
 
 Transport.prototype.getNextMsgId = function() {
     return (this._msgId++ & 0xFFFF);
@@ -174,7 +199,7 @@ Transport.prototype.completeSendSequence = function(err, incomingData) {
 
     clearTimeout(this._ackTimeout);
     delete this._ackTimeout;
-    this._serialComm.flush();
+    if(this._serialComm) this._serialComm.flush();
 
     setTimeout(function() {
 	    self._inProgress = false;
@@ -276,12 +301,18 @@ Transport.prototype.onUnresponsiveError = function() {
 };
 
 Transport.prototype.sendDataFrame = function(buffer) {
-    this._serialComm.write(buffer, function(err) {
-        if(err) {
-        	logger.error('sendDataFrame failed with error- '+ err);
-        	return;
-        }
-    });
+    if(this._serialComm) {
+        this._serialComm.write(buffer, function(err) {
+            if(err) {
+            	logger.error('sendDataFrame failed with error- '+ err);
+            	return;
+            }
+        });
+    } else {
+        logger.error('Discoverer has not defined serial communication interface');
+        this._serialInterfaceOptions.onPortClose();
+        return;
+    }
 };
 
 
