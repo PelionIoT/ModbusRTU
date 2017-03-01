@@ -2,7 +2,7 @@
     "name": "CircleK_IMod6_Slave2",
     "resourceIdPosfix": "CKMod6S2",
     "deviceGenre": "registers",
-    "resourceType": "Core/Devices/ModbusRTU",
+    "resourceType": "Core/Devices/ModbusRTU/IMod6",
     "version": "0.0.1",
     "slaveAddress": 2,
     "enable": true,
@@ -136,13 +136,13 @@
                     "description": "InvertDO8"
                 }
             }
-        }
+        },
     ],
     "configurationRegisters": [
         {//Installer
             "dataAddress": 100,
             "range": 8,
-            "pollingInterval": 1000,
+            "pollingInterval": 5000,
             "readFunctionCode": 3,
             "writeFunctionCode": 6,
             "indexes": {
@@ -335,7 +335,7 @@
         {
             "dataAddress": 1000,
             "range": 8,
-            "pollingInterval": 1000,
+            "pollingInterval": 5000,
             "readFunctionCode": 3,
             "writeFunctionCode": 6,
             "indexes": {
@@ -448,7 +448,6 @@
             "range": 8,
             "pollingInterval": 5000,
             "readFunctionCode": 3,
-            "writeFunctionCode": 6,
             "indexes": {
                 "0": {
                     "interface": "Facades/Switchable", //Add button
@@ -505,7 +504,6 @@
             "range": 8,
             "pollingInterval": 5000,
             "readFunctionCode": 3,
-            "writeFunctionCode": 6,
             "indexes": {
                 "0": {
                     "interface": "Facades/Switchable", //Add button
@@ -562,7 +560,6 @@
             "range": 8,
             "pollingInterval": 1000,
             "readFunctionCode": 3,
-            "writeFunctionCode": 6,
             "indexes": {
                 "0": {
                     "interface": "Facades/Switchable", //Add button

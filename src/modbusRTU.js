@@ -13,7 +13,8 @@ var state_template = generic_templateDir + '/stateTemplate.js';
 
 var autogen_dir = __dirname + '/../controllers/autogenDeviceControllers';
 
-var modbusDbPrefix = 'modbus.devices.';
+var modbusDeviceDbPrefix = 'modbus.devices.';
+var modbusDefinitionDbPrefix = 'modbus.definition.';
 
 function generateResourceId(dcMetaData, siodev, relayId) {
 	var resourceID;
@@ -58,7 +59,7 @@ function checkAndReadFile(file) {
 }
 
 function checkAndReadDatabase(resourceID) {
-	return ddb.local.get(modbusDbPrefix + resourceID).then(function(result) {
+	return ddb.local.get(modbusDeviceDbPrefix + resourceID).then(function(result) {
 		return JSON.parse(result.siblings[0]);
 	});
 }
@@ -232,7 +233,7 @@ var ModbusRTU = {
 			return new Promise(function(resolve, reject) {
 				var resourceID = generateResourceId(dcMetaData, self._siodev, self._relayId);
 				if(!!overwrite) {
-                    return ddb.local.put(modbusDbPrefix + resourceID, JSON.stringify(dcMetaData)).then(function() {
+                    return ddb.local.put(modbusDeviceDbPrefix + resourceID, JSON.stringify(dcMetaData)).then(function() {
                     	resolve({info: 'Saved successfully with filename and resourceID ' + resourceID, metadata: dcMetaData});	
                     });
 				} else {
@@ -251,7 +252,8 @@ var ModbusRTU = {
 			}
 			return new Promise(function(resolve, reject) {
 				return self.commands.stop(resourceID, true).then(function() {
-					return ddb.local.delete(modbusDbPrefix + resourceID).then(function() {
+					dev$.forgetResource(resourceID);
+					return ddb.local.delete(modbusDeviceDbPrefix + resourceID).then(function() {
 						resolve('Device controller stopped and resource type delete for ' + resourceID);	
 					});
 				}, function(err) {
@@ -263,7 +265,7 @@ var ModbusRTU = {
 			return this.commands.delete(resourceID);
 		},
 		shutdown: function() {
-			logger.info('Shutting down module in 5 seconds');
+			logger.warn('Shutting down module in 5 seconds...');
 			setTimeout(function() {
 				process.exit(0);
 			}, 5000);
@@ -276,6 +278,9 @@ var ModbusRTU = {
 		},
 		getFromDatabase: function(resourceID) {
 			return checkAndReadDatabase(resourceID);
+		},
+		getAll: function() {
+			return this._deviceMetaData;
 		},
 		listResources: function() {
 			return this.commands.listDevices();
@@ -299,6 +304,14 @@ var ModbusRTU = {
 				});
 				Promise.all(p).then(function() {
 					logger.info('Deleted all resources');
+					//Sanity check
+					dev$.select('id=*').listResources().then(function(resources) {
+						Object.keys(resources).forEach(function(id) {
+							if(resources[id].type.indexOf('Core/Devices/ModbusRTU') > -1) {
+								dev$.forgetResource(id);
+							}
+						});
+					});
 					self._fc.flushQueue();
 					resolve();
 				}, function(err) {
@@ -344,7 +357,7 @@ var ModbusRTU = {
 				dev$.addResourceType(resourceConfig).then(function() {
 					logger.info('Successfully added resource type ' + resourceTypeName);
                 }, function(err) {
-                    logger.error('Could not add resource type ' + err);
+                    logger.error('Could not add resource type ' + JSON.stringify(err));
                     return reject('Could not add resource type ' + err);
                 }).then(function() {
 					dev$.listInterfaceTypes().then(function(interfaceTypes) {
@@ -458,15 +471,39 @@ var ModbusRTU = {
 				}
 			}
 
+			//Had to deep copy the object- JSON.parse(JSON.stringify(info))
+			// var devInfo = [];
+
+			// var again = function() {
+			// 	var info = getNext();
+			// 	if(info) {
+			// 		console.log('got info ', info);
+			// 		devInfo.push(JSON.parse(JSON.stringify(info)));
+			// 		setImmediate(function() {
+			// 			again();	
+			// 		});
+			// 	} else {
+			// 		console.log('devInfo ', devInfo);
+			// 		return;
+			// 	}
+			// };
+
+			// setImmediate(function() {
+			// 	again();	
+			// });
+
 			var response = [];
 			return new Promise(function(resolve, reject) {
 				function again() {
 					var info = getNext();
 					if(info) {
 						logger.debug('Starting device controller on metadata ' + JSON.stringify(info));
-						self.commands._startDeviceController(info).then(function(resp) {
+						self.commands._startDeviceController(JSON.parse(JSON.stringify(info))).then(function(resp) {
+							ddb.shared.put('WigWagUI:appData.resource.' + info.resourceID + '.name', JSON.stringify(info.interfaces[Object.keys(info.interfaces)[0]].name));
 							response.push(resp);
-							again();
+							setImmediate(function() {
+								again();	
+							});
 						}, function(err) {
 							return reject(err);
 						}).catch(function(err) {
@@ -488,7 +525,7 @@ var ModbusRTU = {
 								dcmd.configurationRuns[run.dataAddress] = {};
 								dcmd.configurationRuns[run.dataAddress].dataAddress = run.dataAddress;
 								dcmd.configurationRuns[run.dataAddress].range = run.range;
-								dcmd.configurationRuns[run.dataAddress].pollingInterval = run.pollingIntervalpollingInterval;
+								dcmd.configurationRuns[run.dataAddress].pollingInterval = run.pollingInterval;
 								dcmd.configurationRuns[run.dataAddress].writeFunctionCode = run.writeFunctionCode;
 								dcmd.configurationRuns[run.dataAddress].readFunctionCode = run.readFunctionCode;
 								dcmd.configurationRuns[run.dataAddress].indexes = run.indexes;
@@ -498,8 +535,10 @@ var ModbusRTU = {
 								response.push(resp);
 								return resolve(response);
 							}, function(err) {
+								logger.error('Failed with error ' + err + JSON.stringify(err));
 								return reject(err);
 							}).catch(function(err) {
+								logger.error('Failed with error ' + err + JSON.stringify(err));
 								return reject(err);
 							});
 						} else {
@@ -535,6 +574,8 @@ var ModbusRTU = {
 	            					logger.info('Found format 3 schema format!');
 	            					return self.commands._transformRegisterRunsToInterfaces(metadata);
 	            				}
+	            			}, function(err) {
+	            				logger.error('Failed to validate ' + err);
 	            			});
 	            		});
 		            }
@@ -575,8 +616,9 @@ var ModbusRTU = {
 	                logger.error("Key was deleted");
 	            }
 	        }
-	        return ddb.local.getMatches(modbusDbPrefix, next).then(function() {
+	        return ddb.local.getMatches(modbusDeviceDbPrefix, next).then(function() {
 	            Object.keys(nodes).forEach(function(id) {
+	            	// console.log('node ', nodes[id]);
 	            	return validateDeviceDefinition(nodes[id]).then(function(format) {
         				if(format == 1 || format == 2) {
         					return self.commands._startDeviceController(nodes[id]);	
@@ -584,6 +626,8 @@ var ModbusRTU = {
         					logger.info('Found format 3 schema format!');
         					return self.commands._transformRegisterRunsToInterfaces(nodes[id]);
         				}
+        			}, function(err) {
+        				logger.error('Failed to validate ' + err);
         			});
 	            });
 	        });

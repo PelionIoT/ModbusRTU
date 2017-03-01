@@ -18,8 +18,8 @@ var INTERFACE_SCHEMA_FORMAT = {
                 "description": { "type": "string" },
                 "unit": { "type": "string" },
                 "eventThreshold": { "type": "number" }
-            },
-            "required": [ "dataAddress", "pollingInterval", "readFunctionCode" ]
+            }
+            // ,"required": [ "dataAddress", "pollingInterval", "readFunctionCode" ]
         }
     },
     "additionalProperties": false

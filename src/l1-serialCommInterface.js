@@ -133,9 +133,13 @@ SerialCommInterface.prototype.resume = function() {
 
 //Flushes data received but not read
 SerialCommInterface.prototype.flush = function() {
+	var self = this;
 	this._serialPort.flush(function(err) {
 		if(err) {
 			logger.error('Error while flushing the serial port '+ err);
+			if(/Port is not open/.test(err)) {
+				if(self._onPortClose && typeof self._onPortClose === 'function') self._onPortClose();
+			}
 			return;
 		}
 		return;

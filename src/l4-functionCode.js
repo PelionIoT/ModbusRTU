@@ -26,7 +26,8 @@ FunctionCode.prototype.start = function(opts) {
 				return resolve();
 			}
 			logger.error('Failed with error '+ err);
-			reject(err);
+			// reject(err);
+			resolve();
 		});
 	});
 };

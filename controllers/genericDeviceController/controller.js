@@ -22,6 +22,8 @@ var {{controllerClassName}} = {
         this._facadeState = {};
         this._facadeData = {};
 
+        this._configurationStates = [];
+
         if(this._interfaces && !this._metadata.configurationRuns) {
             //Register each interface polling to scheduler
             Object.keys(self._interfaces).forEach(function(intf) {
@@ -68,6 +70,67 @@ var {{controllerClassName}} = {
 
         if(this._metadata.configurationRuns) {
             //Got configuration runs
+            Object.keys(this._metadata.configurationRuns).forEach(function(da) {
+                logger.trace('REGISTERING CONFIGURATION POLL TO SCHEDULER');
+                var run = self._metadata.configurationRuns[da];
+                if(run.pollingInterval) {
+                    logger.trace('GOT POLLING INTERVAL FOR DA  ' + da);
+                    self._scheduler.registerCommand(
+                        self._id,
+                        run.pollingInterval,
+                        da.toString() + 'configuration',
+                        self._slaveAddress,
+                        run.dataAddress,
+                        run.readFunctionCode,
+                        run.range
+                        );
+
+                    self._facadeData[da.toString() + 'configuration'] = run; 
+                    self._configurationStates.push(da.toString() + 'configuration');
+
+                    // console.log('_configurationStates ', self._configurationStates);
+
+                    self._scheduler.on(self._id + da.toString() + 'configuration', function(state, data) {
+                        logger.debug('State ' + state + ' got data ' + data);
+                        if(typeof self._facadeState[state] === 'undefined') {
+                            self._facadeState[state] = [];
+                        }
+
+                        if(data instanceof Array) {
+                            if(self._facadeState[state] != data) {
+                                data.forEach(function(element, index, array) {
+                                    try {
+                                        // console.log('state ', state + ' value ' + self._facadeState[state][index] + ' element ' + element);
+                                        // console.log('facade data ', self._facadeData[state].indexes[index.toString()]);
+                                        // console.log('Abs ', Math.abs(self._facadeState[state][index] - element));
+                                        if(self._facadeState[state][index] != element) {
+                                            if( (typeof element === 'string') ||
+                                                (typeof self._facadeState[state][index] === 'undefined') ||
+                                                (typeof element === 'object') ||
+                                                (typeof element !== 'object' && typeof self._facadeData[state].indexes[index.toString()].eventThreshold === 'undefined') ||
+                                                (typeof element !== 'object' && typeof self._facadeData[state].indexes[index.toString()].eventThreshold !== 'undefined'
+                                                    && (Math.abs(self._facadeState[state][index] - element) >= self._facadeData[state].indexes[index.toString()].eventThreshold))
+                                            ) {
+                                                self._facadeState[state][index] = element;
+                                                element = self._fc.evalOperation(element, self._facadeData[state].indexes[index.toString()].outgoingOperation);
+                                                logger.info('Emitting event for state ' + state + ' data ' + element);
+                                                self.emit('configuration', JSON.stringify({
+                                                    dataAddress: da/1 + index,
+                                                    value: element, 
+                                                    name: self._facadeData[state].indexes[index.toString()].name,
+                                                    description: self._facadeData[state].indexes[index.toString()].description
+                                                }));
+                                            }
+                                        }
+                                    } catch(e) {
+                                        logger.error('Parsing response ' + e + state + data);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+            });
         }
 
         if(this._registers) {
@@ -149,6 +212,10 @@ var {{controllerClassName}} = {
         Object.keys(this.state).forEach(function(facade) {
             self._scheduler.removeAllListeners(self._id + facade);
         })
+
+        this._configurationStates.forEach(function(state) {
+            self._scheduler.removeAllListeners(self._id + state);
+        });
     },
     state: {
         power: {
@@ -292,39 +359,153 @@ var {{controllerClassName}} = {
             }
         },
         configuration: {
-            get: function(origin) {
+            get: function(name, origin) {
                 var self = this;
                 var ret = {};
                 var p = [];
+                if(name && typeof name.resourceSet !== 'undefined') {
+                    name = undefined;
+                }
+
+                if(origin && typeof origin.resourceSet !== 'undefined') {
+                    origin = undefined;
+                }
                 return new Promise(function(resolve, reject) {
                     if(!self._metadata.configurationRuns) {
                         return reject('This facade is not supported by controller');
                     }
-                    Object.keys(self._metadata.configurationRuns).forEach(function(da) {
-                        var run = self._metadata.configurationRuns[da];
-                        ret[run.dataAddress] = {};
-                        p.push(self._fc.call(run.readFunctionCode,
+                    if(typeof name === 'undefined') {
+                        Object.keys(self._metadata.configurationRuns).forEach(function(da) {
+                            var run = self._metadata.configurationRuns[da];
+                            if(run.readFunctionCode) {
+                                ret[run.dataAddress] = [];
+                                p.push(self._fc.call(run.readFunctionCode,
+                                    self._slaveAddress,
+                                    run.dataAddress,
+                                    run.range,
+                                    origin).then(function(data) {
+                                        logger.info('For dataaddress ' + run.dataAddress + ' got response ' + data._response._data);
+                                        data._response._data.forEach(function(element, i, a) {
+                                            if(typeof run.indexes[i.toString()] !== 'undefined') {
+                                                element = self._fc.evalOperation(element, run.indexes[i.toString()].outgoingOperation);
+                                                ret[run.dataAddress][i] = {
+                                                    value: element,
+                                                    dataAddress: run.dataAddress + i,
+                                                    name: run.indexes[i.toString()].name,
+                                                    description: run.indexes[i.toString()].description
+                                                }
+                                            }
+                                        });
+                                        // ret[run.dataAddress] = data._response._data;
+                                    }, function(err) {
+                                        ret[run.dataAddress] = "Error- " + err;
+                                    }).catch(function(err) {
+                                        ret[run.dataAddress] = 'Error- ' + err;
+                                    })
+                                );
+                            }
+                        });
+
+                        Promise.all(p).then(function() {
+                            resolve(ret);
+                        }, function(err) {
+                            reject(err);
+                        })
+                    } else {
+                        logger.debug('Got name ' + name);
+                        var run = null;
+                        Object.keys(self._metadata.configurationRuns).forEach(function(da) {
+                            for(var j = 0; j < Object.keys(self._metadata.configurationRuns[da].indexes).length; j++) {
+                                var index = Object.keys(self._metadata.configurationRuns[da].indexes)[j] / 1;
+                                try {
+                                    if((typeof name === 'string' && self._metadata.configurationRuns[da].indexes[index].name == name) || 
+                                        (typeof name === 'number' && (self._metadata.configurationRuns[da].dataAddress + index) == name)) {
+                                        run = self._metadata.configurationRuns[da].indexes[index];
+                                        run.dataAddress = self._metadata.configurationRuns[da].dataAddress + index;
+                                        run.readFunctionCode = self._metadata.configurationRuns[da].readFunctionCode;
+                                        break;
+                                    }
+                                } catch(e) {
+                                    logger.error('Error ' + e + JSON.stringify(e));
+                                    return reject(e);
+                                }
+                            }
+                        });
+
+                        if(run == null) {
+                            return reject(new Error('Could not find the data address in device definition. Make sure the name or dataaddress passed as argument is in device definition!'));
+                        }
+
+                        logger.info('Getting individual configuration register ' + JSON.stringify(run));
+
+                        if(typeof run.readFunctionCode === 'undefined') {
+                            return reject('This facade has no read function code defined');
+                        }
+                        self._fc.call(run.readFunctionCode,
                             self._slaveAddress,
                             run.dataAddress,
-                            run.range,
+                            1,
                             origin).then(function(data) {
                                 logger.info('For dataaddress ' + run.dataAddress + ' got response ' + data._response._data);
-                                ret[run.dataAddress] = data._response._data;
+                                ret.value = self._fc.evalOperation(data._response._data[0], run.outgoingOperation);
+                                ret.dataAddress = run.dataAddress;
+                                ret.name = run.name;
+                                ret.description = run.description;
+                                resolve(ret);
                             }, function(err) {
-                                ret[run.dataAddress] = "Error- " + err;
-                            })
-                        );
-                    });
-
-                    Promise.all(p).then(function() {
-                        resolve(ret);
-                    }, function(err) {
-                        reject(err);
-                    })
+                                reject(err);
+                            });
+                    }
                 })
             }, 
-            set: function() {
-                return 'Not yet implemented';
+            set: function(obj) {
+                var self = this;
+                var value = obj.value;
+                var name = obj.name;
+                if(typeof value === 'undefined' || typeof value.selection !== 'undefined' || typeof value.resourceSet !== 'undefined') {
+                    return Promise.reject(new Error('Got undefined value, please define the value and dataAddress!'));
+                }
+
+                if((typeof name === 'undefined') || 
+                    (typeof name.resourceSet !== 'undefined')) {
+                    return Promise.reject(new Error('Please define name or data address of the register'));
+                }
+
+                var run = null;
+                Object.keys(self._metadata.configurationRuns).forEach(function(da) {
+                    for(var j = 0; j < Object.keys(self._metadata.configurationRuns[da].indexes).length; j++) {
+                        var index = Object.keys(self._metadata.configurationRuns[da].indexes)[j] / 1;
+                        if((typeof name === 'string' && self._metadata.configurationRuns[da].indexes[index].name == name) || 
+                            (typeof name === 'number' && (self._metadata.configurationRuns[da].dataAddress + index) == name)) {
+                            run = self._metadata.configurationRuns[da].indexes[index];
+                            run.dataAddress = self._metadata.configurationRuns[da].dataAddress + index;
+                            run.writeFunctionCode = self._metadata.configurationRuns[da].writeFunctionCode;
+                            break;
+                        }
+                    }
+                })
+
+                if(run == null) {
+                    return Promise.reject(new Error('Could not find the data address in device definition. Make sure the name or dataaddress passed as argument is in device definition!'));
+                }
+
+                logger.info('Setting register ' + JSON.stringify(run));
+
+                return new Promise(function(resolve, reject) {
+                    if(typeof run.writeFunctionCode === 'undefined') {
+                        return reject('This facade has no write function code defined');
+                    }
+                    return self._fc.call(run.writeFunctionCode,
+                        self._slaveAddress,
+                        run.dataAddress,
+                        value).then(function() {
+                            resolve();
+                        }, function(err) {
+                            reject(err);
+                        });
+                });
+
+
             }
         }
     },
@@ -335,7 +516,7 @@ var {{controllerClassName}} = {
 
         Object.keys(self.state).forEach(function(interface) {
             p.push(new Promise(function(resolve, reject) {
-                    self.state[interface].get(interface).then(function(value) {
+                    self.state[interface].get().then(function(value) {
                     if(value != null) {
                         s[interface] = value;
                     }
@@ -405,14 +586,17 @@ var {{controllerClassName}} = {
         getInterfaces: function() {
             return this._interfaces;
         },
-        getConfiguration: function() {
-            return this.state.configuration.get();
+        getConfiguration: function(name) {
+            return this.state.configuration.get(name);
         },
-        setConfiguration: function(value) {
-            return this.state.configuration.set(value);
+        setConfiguration: function(value, name) {
+            return this.state.configuration.set({value: value, name: name});
         },
         setToDefault: function() {
             return 'Not supported';
+        },
+        getFacadeData: function() {
+            return this._facadeData;
         }
     }
 };

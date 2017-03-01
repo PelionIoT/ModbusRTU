@@ -41,7 +41,7 @@ Scheduler.prototype.stop = function() {
 	clearInterval(this._globalInterval);
 }
 
-Scheduler.prototype.registerCommand = function(resourceId, pollingInterval, facade, slaveAddress, dataAddress, readFunctionCode) {
+Scheduler.prototype.registerCommand = function(resourceId, pollingInterval, facade, slaveAddress, dataAddress, readFunctionCode, range) {
 	// var facade = Object.keys(command)[0];
 	var self = this;
 	//Find if any command is registered from this resourceId
@@ -72,6 +72,7 @@ Scheduler.prototype.registerCommand = function(resourceId, pollingInterval, faca
 			this._tokenDistributer[token] = 0;	
 		}
 	}
+	this._pollingCommands[resourceId][facade].range = range;
 	this._pollingCommands[resourceId][facade].slaveAddress = slaveAddress;
 	this._pollingCommands[resourceId][facade].dataAddress = dataAddress;
 	this._pollingCommands[resourceId][facade].readFunctionCode = readFunctionCode;
@@ -112,6 +113,7 @@ Scheduler.prototype._updateCounters = function() {
 		});
 	});
 
+	//Segregate commands for same slave address and read function code
 	function getCommandsWithSameFunctionCode(sa, rfc) {
 		var ret = [];
 		self._commandsToExecute.forEach(function(command, index, array) {
@@ -126,6 +128,7 @@ Scheduler.prototype._updateCounters = function() {
 		return ret;
 	}
 
+	//Get next batch of commands to execute and arrange them in data address ascending order
 	function getNextCommandBatch() {
 		if(self._commandsToExecute.length !== 0) {
 			logger.info('Executing polling commands for intervals ' + JSON.stringify(executeTokens.map(function(e) { return (e * self._schedulerIntervalResolution); }) ) );
@@ -142,6 +145,7 @@ Scheduler.prototype._updateCounters = function() {
 		}
 	}
 
+	//Club requests and create a register run
 	function getOneRegisterRun(commands) {
 		var commandsToSplice = [];
 		var registerRun = {};
@@ -149,7 +153,7 @@ Scheduler.prototype._updateCounters = function() {
 		registerRun.dataAddress = commands[0].dataAddress;
 		registerRun.readFunctionCode = commands[0].readFunctionCode;
 		registerRun.slaveAddress = commands[0].slaveAddress;
-		registerRun.range = 1;
+		registerRun.range = commands[0].range || 1;
 		registerRun.eventSubsctiptionId = [];
 		registerRun.eventSubsctiptionId.push(commands[0].resourceId + commands[0].facade);
 		registerRun.state = [];
@@ -157,19 +161,22 @@ Scheduler.prototype._updateCounters = function() {
 
 		commandsToSplice.push(commands[0]);
 
-		var temp = registerRun.dataAddress;
-		for(var i = 1; i < commands.length; i++) {
-			if((commands[i].dataAddress - temp) == 1) {
-				registerRun.range++;
-				registerRun.state.push(commands[i].facade);
-				registerRun.eventSubsctiptionId.push(commands[i].resourceId + commands[i].facade);
-				temp = commands[i].dataAddress;
-				commandsToSplice.push(commands[i]);
-			} else {
-				break;
+		if(commands[0].range == 1 || !commands[0].range) {
+			var temp = registerRun.dataAddress;
+			for(var i = 1; i < commands.length; i++) {
+				if((commands[i].dataAddress - temp) == 1) {
+					registerRun.range++;
+					registerRun.state.push(commands[i].facade);
+					registerRun.eventSubsctiptionId.push(commands[i].resourceId + commands[i].facade);
+					temp = commands[i].dataAddress;
+					commandsToSplice.push(commands[i]);
+				} else {
+					break;
+				}
 			}
 		}
 
+		// console.log('commandsToSplice ', commandsToSplice);
 		commandsToSplice.forEach(function(command) {
 			commands.splice(commands.indexOf(command), 1);
 		});
@@ -218,9 +225,15 @@ Scheduler.prototype.execute = function(run) {
             'scheduler').then(function(data) {
 	            logger.trace('Got result for run ' + JSON.stringify(run));
 	            logger.debug('Got result for run ' + data._response._data);
-	            data._response._data.forEach(function(d, i, a) {
-	            	self.emit(run.eventSubsctiptionId[i], run.state[i], d);
-	            });
+	            //Dirty hack to emit configuration run data
+	            if(run.state[0] === run.dataAddress + 'configuration') {
+	            	// logger.info('Emitting event with subscription id ' + run.eventSubsctiptionId[0]);
+	            	self.emit(run.eventSubsctiptionId[0], run.state[0], data._response._data);
+	            } else {
+		            data._response._data.forEach(function(d, i, a) {
+		            	self.emit(run.eventSubsctiptionId[i], run.state[i], d);
+		            });
+		        }
             }, function(err) {
             	return reject('Failed with error ' + err);
             });
